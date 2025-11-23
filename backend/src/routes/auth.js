@@ -9,7 +9,8 @@ router.post('/login', (req, res) => {
   if (!email || !password) return res.status(400).json({ message: 'Email and password are required' })
   const lower = email.toLowerCase()
   const role = lower.includes('admin') ? 'admin' : (lower.includes('exec') || lower.includes('executive') ? 'executive' : 'user')
-  const token = jwt.sign({ sub: '1', role, email }, process.env.JWT_SECRET, { expiresIn: '2h' })
+  const secret = process.env.JWT_SECRET || 'dev-secret'
+  const token = jwt.sign({ sub: '1', role, email }, secret, { expiresIn: '2h' })
   res.json({ token, user: { email, role } })
 })
 

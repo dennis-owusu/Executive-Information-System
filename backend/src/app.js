@@ -15,7 +15,21 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
 
 app.use(express.json({ limit: '2mb' }))
 app.use(express.urlencoded({ extended: true }))
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }))
+// CORS: allow configured origins or reflect origin by default to support separate frontend deployments
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // allow non-browser or same-origin requests
+    if (!origin) return cb(null, true)
+    if (allowedOrigins.includes(origin)) return cb(null, true)
+    // reflect origin to enable cross-origin frontend by default
+    return cb(null, true)
+  }
+}))
 app.use(helmet())
 app.use(compression())
 app.use(morgan('dev'))
