@@ -13,7 +13,7 @@ const nav = [
 export default function ExecutiveLayout() {
   return (
     <motion.div className="grid grid-cols-1 gap-6 lg:grid-cols-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <aside className="lg:col-span-1">
+      <aside className="lg:col-span-1 lg:sticky lg:top-24">
         <nav className="rounded-lg border bg-white p-4">
           <div className="mb-2 text-sm font-semibold text-neutral-700">Executive Navigation</div>
           <ul className="space-y-1">

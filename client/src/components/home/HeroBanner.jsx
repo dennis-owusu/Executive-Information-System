@@ -10,9 +10,9 @@ export default function HeroBanner() {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6 }}
     >
-      <div className="p-8">
+      <div className="p-6 sm:p-8">
         <motion.h1
-          className="text-2xl font-bold md:text-3xl"
+          className="text-xl font-bold sm:text-2xl md:text-3xl"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}

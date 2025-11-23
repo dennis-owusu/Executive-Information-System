@@ -25,9 +25,9 @@ export default function ProductList() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <div className="lg:col-span-1"><CategorySidebar /></div>
         <div className="lg:col-span-3 space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Input placeholder="Search products..." value={q} onChange={e => setQ(e.target.value)} />
-            <Button onClick={load}>Search</Button>
+            <Button onClick={load} className="w-full sm:w-auto">Search</Button>
           </div>
           <motion.div
             initial={{ opacity: 0, y: 10 }}

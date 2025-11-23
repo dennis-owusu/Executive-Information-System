@@ -12,7 +12,7 @@ export default function Checkout() {
         <Input placeholder="Street" />
         <Input placeholder="City" />
       </div>
-      <Button>Pay</Button>
+      <Button className="w-full sm:w-auto">Pay</Button>
     </motion.div>
   )
 }

@@ -22,12 +22,12 @@ export default function ProductCatalog() {
 
   return (
     <motion.div className="space-y-4" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input placeholder="Search products..." value={q} onChange={e => setQ(e.target.value)} />
-          <Button onClick={load} disabled={loading}>{loading ? 'Loading...' : 'Search'}</Button>
+          <Button onClick={load} disabled={loading} className="w-full sm:w-auto">{loading ? 'Loading...' : 'Search'}</Button>
         </div>
-        <Link to="/executive/products/upload"><Button>Upload Product</Button></Link>
+        <Link to="/executive/products/upload"><Button className="w-full sm:w-auto">Upload Product</Button></Link>
       </div>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -47,4 +47,3 @@ export default function ProductCatalog() {
     </motion.div>
   )
 }
-

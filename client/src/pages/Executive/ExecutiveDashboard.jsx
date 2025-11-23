@@ -18,8 +18,8 @@ export default function ExecutiveDashboard() {
 
   return (
     <motion.div className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <div className="flex justify-end">
-        <Link to="/executive/products/upload"><Button variant="outline">Upload Product</Button></Link>
+      <div className="flex">
+        <Link to="/executive/products/upload"><Button variant="outline" className="w-full sm:w-auto ml-auto">Upload Product</Button></Link>
       </div>
       <motion.div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ staggerChildren: 0.05 }}>

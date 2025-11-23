@@ -1,7 +1,17 @@
 import axios from 'axios'
 
+const DEFAULT_API_URL = 'https://executive-information-system.onrender.com'
+const apiBase = (() => {
+  const envUrl = import.meta.env.VITE_API_URL
+  if (envUrl) return envUrl
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:4000'
+  }
+  return DEFAULT_API_URL
+})()
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  baseURL: apiBase
 })
 
 api.interceptors.request.use(config => {
