@@ -22,6 +22,8 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [processing, setProcessing] = useState(false);
 
+  const [reference, setReference] = useState(`ORD-${Date.now()}`);
+
   const subtotal = getTotal();
   const shipping = subtotal > 50 ? 0 : 9.99;
   const tax = subtotal * 0.08;
@@ -30,7 +32,7 @@ export default function CheckoutPage() {
   const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_c45444fba0ed1a546015617807267ded4552be18';
 
   const config = {
-    reference: `ORD-${Date.now()}`,
+    reference: reference, // Use state reference
     email: formData.email,
     amount: Math.round(total * 100), // Paystack expects kobo/cents
     currency: 'GHS',
@@ -71,6 +73,8 @@ export default function CheckoutPage() {
 
   const onClose = () => {
     console.log('Payment closed');
+    // Generate new reference for next attempt
+    setReference(`ORD-${Date.now()}`);
   };
 
   // Only initialize if key is present to avoid crash, but allow UI to render
@@ -80,6 +84,8 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (step === 1) {
       setStep(2);
+      // Ensure fresh reference when moving to payment step
+      setReference(`ORD-${Date.now()}`);
     } else {
       if (publicKey.includes('xxxx')) {
         alert('Paystack Public Key is missing! Please set VITE_PAYSTACK_PUBLIC_KEY in .env');

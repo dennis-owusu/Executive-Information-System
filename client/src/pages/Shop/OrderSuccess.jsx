@@ -1,11 +1,28 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle, Package, Home, ShoppingBag, ArrowRight } from 'lucide-react';
 import ShopNavbar from '../../components/ShopNavbar';
 
 export default function OrderSuccessPage() {
     const location = useLocation();
+    const navigate = useNavigate();
     const reference = location.state?.reference || 'N/A';
+    const [countdown, setCountdown] = useState(5);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCountdown((prev) => prev - 1);
+        }, 1000);
+
+        const redirect = setTimeout(() => {
+            navigate('/shop');
+        }, 5000);
+
+        return () => {
+            clearInterval(timer);
+            clearTimeout(redirect);
+        };
+    }, [navigate]);
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
@@ -22,8 +39,11 @@ export default function OrderSuccessPage() {
                     </div>
 
                     <h1 className="text-4xl font-black text-slate-900 mb-4">Order Confirmed!</h1>
-                    <p className="text-xl text-slate-600 mb-8">
+                    <p className="text-xl text-slate-600 mb-2">
                         Thank you for your purchase. Your order is being processed.
+                    </p>
+                    <p className="text-sm text-slate-500 mb-8">
+                        Redirecting to home page in <span className="font-bold text-purple-600">{countdown}</span> seconds...
                     </p>
 
                     {/* Order Reference */}
@@ -49,11 +69,11 @@ export default function OrderSuccessPage() {
                     {/* Actions */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link
-                            to="/shop/products"
+                            to="/shop"
                             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-purple-500/30 transition-all hover:scale-105"
                         >
-                            <ShoppingBag size={20} />
-                            Continue Shopping
+                            <Home size={20} />
+                            Go to Home Now
                         </Link>
                         <Link
                             to="/shop/my-orders"
