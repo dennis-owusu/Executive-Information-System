@@ -14,7 +14,6 @@ mongoose.connect(mongoUri).then(() => {
   })
 }).catch(err => {
   console.error('Mongo connection error', err)
-  process.exit(1)
+  process.exit(1)  
 })
- 
-//gi8ynKrObaNSPNe8
+

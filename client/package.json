@@ -19,6 +19,7 @@
     "lucide-react": "^0.474.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-paystack": "^6.0.0",
     "react-router-dom": "^6.26.2",
     "recharts": "^2.10.4",
     "tailwind-merge": "^2.4.0",

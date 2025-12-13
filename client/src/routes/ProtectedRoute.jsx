@@ -1,14 +1,32 @@
-import React, { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
-import { getMe } from '../services/api.js'
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 
-export default function ProtectedRoute({ children, roles }) {
-  const [user, setUser] = useState(null)
-  useEffect(() => {
-    getMe().then(setUser).catch(() => setUser(false))
-  }, [])
-  if (user === null) return null
-  if (user === false) return <Navigate to="/login" />
-  if (roles && !roles.includes(user.role)) return <Navigate to="/" />
-  return children
+export default function ProtectedRoute({ children, allowedRoles = ['admin', 'executive'] }) {
+  const token = localStorage.getItem('token');
+  const userStr = localStorage.getItem('user');
+  const location = useLocation();
+
+  // Simple check: if no token, redirect to login
+  if (!token) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  // Check user role
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+
+      // If user role is not in allowed roles, redirect to shop
+      if (!allowedRoles.includes(user.role)) {
+        return <Navigate to="/shop" replace />;
+      }
+    } catch (e) {
+      // Invalid user data, clear and redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return <Navigate to="/login" replace />;
+    }
+  }
+
+  return children;
 }

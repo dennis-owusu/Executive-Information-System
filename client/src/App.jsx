@@ -1,59 +1,55 @@
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import Products from './pages/Products';
+import Orders from './pages/Orders';
+import Analytics from './pages/Analytics';
+import Customers from './pages/Customers';
+import Settings from './pages/Settings';
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import ProtectedRoute from './routes/ProtectedRoute';
 
-import React from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { AnimatePresence } from 'framer-motion'
-import Navbar from './components/common/Navbar.jsx'
-import ProtectedRoute from './routes/ProtectedRoute.jsx'
-
-import Login from './pages/Auth/Login.jsx'
-import Register from './pages/Auth/Register.jsx'
-
-import ProductList from './pages/Shop/ProductList.jsx'
-import ProductDetail from './pages/Shop/ProductDetail.jsx'
-import Cart from './pages/Shop/Cart.jsx'
-import Checkout from './pages/Shop/Checkout.jsx'
-
-import Orders from './pages/User/Orders.jsx'
-import Dashboard from './pages/User/Dashboard.jsx'
-
-import ExecutiveDashboard from './pages/Executive/ExecutiveDashboard.jsx'
-import ProductUpload from './pages/Executive/ProductUpload.jsx'
-import ProductCatalog from './pages/Executive/ProductCatalog.jsx'
-import ExecutiveLayout from './layouts/ExecutiveLayout.jsx'
-import ExecutiveAnalytics from './pages/Executive/ExecutiveAnalytics.jsx'
-import ExecutiveOrders from './pages/Executive/Orders.jsx'
+// Shop pages
+import ShopHome from './pages/Shop/ShopHome';
+import ShopProducts from './pages/Shop/ShopProducts';
+import Cart from './pages/Shop/Cart';
+import Checkout from './pages/Shop/Checkout';
+import OrderSuccess from './pages/Shop/OrderSuccess';
+import MyOrders from './pages/Shop/MyOrders';
+import Profile from './pages/Shop/Profile';
 
 export default function App() {
-  const location = useLocation()
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900">
-      <Navbar />
-      <div className="mx-auto max-w-7xl px-4 py-6">
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<ProductList />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/executive" element={
-              <ProtectedRoute roles={["executive","admin"]}>
-                <ExecutiveLayout />
-              </ProtectedRoute>
-            }>
-              <Route index element={<ExecutiveDashboard />} />
-              <Route path="products" element={<ProductCatalog />} />
-              <Route path="products/upload" element={<ProductUpload />} />
-              <Route path="analytics" element={<ExecutiveAnalytics />} />
-              <Route path="orders" element={<ExecutiveOrders />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </AnimatePresence>
-      </div>
-    </div>
-  )
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      {/* Shop Routes (Public) */}
+      <Route path="/shop" element={<ShopHome />} />
+      <Route path="/shop/products" element={<ShopProducts />} />
+      <Route path="/shop/cart" element={<Cart />} />
+      <Route path="/shop/checkout" element={<Checkout />} />
+      <Route path="/shop/order-success" element={<OrderSuccess />} />
+      <Route path="/shop/my-orders" element={<MyOrders />} />
+      <Route path="/shop/profile" element={<Profile />} />
+
+      {/* Protected Routes wrapped in Main Layout */}
+      <Route path="/" element={
+        <ProtectedRoute>
+          <Layout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Dashboard />} />
+        <Route path="products" element={<Products />} />
+        <Route path="orders" element={<Orders />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="customers" element={<Customers />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/shop" replace />} />
+    </Routes>
+  );
 }

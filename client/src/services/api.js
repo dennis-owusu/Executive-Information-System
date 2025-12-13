@@ -20,9 +20,17 @@ api.interceptors.request.use(config => {
   return config
 })
 
-export async function login(email, password) {
-  const { data } = await api.post('/auth/login', { email, password })
+export async function login(email, password, role = 'user') {
+  const { data } = await api.post('/auth/login', { email, password, role })
   localStorage.setItem('token', data.token)
+  localStorage.setItem('user', JSON.stringify(data.user))
+  return data.user
+}
+
+export async function register(userData) {
+  const { data } = await api.post('/auth/register', userData)
+  localStorage.setItem('token', data.token)
+  localStorage.setItem('user', JSON.stringify(data.user))
   return data.user
 }
 
@@ -38,6 +46,7 @@ export async function getProducts(params = {}) {
     const { data } = await api.get('/products', { params })
     return data
   } catch {
+    // Fallback if backend /products fails (for dev resilience)
     const { listProducts } = await import('./mockApi.js')
     return listProducts(params)
   }
@@ -50,6 +59,23 @@ export async function createProduct(formData) {
   return data
 }
 
+// Order & User API
+export async function createOrder(orderData) {
+  const { data } = await api.post('/api/orders', orderData)
+  return data
+}
+
+export async function getMyOrders() {
+  const { data } = await api.get('/api/orders/my-orders')
+  return data
+}
+
+export async function getCustomers() {
+  const { data } = await api.get('/api/users')
+  return data
+}
+
+// Analytics (Keep mock fallback for now if no backend impl)
 export async function getSalesSummary(params = {}) {
   try {
     const { data } = await api.get('/analytics/sales/summary', { params })
@@ -68,4 +94,14 @@ export async function getOperationsSummary() {
     const { operationsSummary } = await import('./mockApi.js')
     return operationsSummary()
   }
+}
+
+export async function getDashboardStats() {
+  const { data } = await api.get('/dashboard/stats')
+  return data
+}
+
+export async function getDashboardChartData() {
+  const { data } = await api.get('/dashboard/chart-data')
+  return data
 }

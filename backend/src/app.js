@@ -7,6 +7,8 @@ const morgan = require('morgan')
 const compression = require('compression')
 const productsRouter = require('./routes/products')
 const authRouter = require('./routes/auth')
+const orderRouter = require('./routes/orders')
+const userRouter = require('./routes/users')
 
 const app = express()
 
@@ -43,6 +45,10 @@ app.get('/api/health', (req, res) => {
 app.use('/api/products', productsRouter)
 app.use('/products', productsRouter)
 app.use('/auth', authRouter)
+app.use('/api/auth', authRouter) // Add alternate path for consistency
+app.use('/api/orders', orderRouter)
+app.use('/api/users', userRouter)
+app.use('/api/dashboard', require('./routes/dashboard'))
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Not Found' })
