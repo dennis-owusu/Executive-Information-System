@@ -58,8 +58,8 @@ export default function MyOrdersPage() {
                             key={value}
                             onClick={() => setFilter(value)}
                             className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${filter === value
-                                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30"
-                                    : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
+                                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30"
+                                : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
                                 }`}
                         >
                             {label}
@@ -126,7 +126,7 @@ function OrderCard({ order, statusConfig, index }) {
                             {status.label}
                         </span>
                         <div className="text-right">
-                            <p className="text-2xl font-black text-purple-600">${order.totalAmount?.toFixed(2)}</p>
+                            <p className="text-2xl font-black text-purple-600">₵{order.totalAmount?.toFixed(2)}</p>
                             <p className="text-xs text-slate-500">{order.products?.length || 0} items</p>
                         </div>
                     </div>
@@ -153,7 +153,7 @@ function OrderCard({ order, statusConfig, index }) {
                                     <p className="font-semibold text-slate-900">{item.name}</p>
                                     <p className="text-sm text-slate-500">Qty: {item.quantity}</p>
                                 </div>
-                                <p className="font-bold text-slate-900">${item.priceAtPurchase?.toFixed(2)}</p>
+                                <p className="font-bold text-slate-900">₵{item.priceAtPurchase?.toFixed(2)}</p>
                             </div>
                         ))}
                     </div>

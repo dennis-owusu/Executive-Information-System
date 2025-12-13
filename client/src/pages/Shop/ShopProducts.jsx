@@ -240,9 +240,9 @@ function ProductCardGrid({ product, index, onAddToCart, onBuyNow }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="text-2xl font-black text-purple-600">${product.price}</span>
+                    <span className="text-2xl font-black text-purple-600">₵{product.price}</span>
                     {Math.random() > 0.5 && (
-                        <span className="text-sm text-slate-400 line-through">${(product.price * 1.3).toFixed(0)}</span>
+                        <span className="text-sm text-slate-400 line-through">₵{(product.price * 1.3).toFixed(0)}</span>
                     )}
                 </div>
             </div>
@@ -296,7 +296,7 @@ function ProductCardList({ product, onAddToCart, onBuyNow }) {
                     </div>
 
                     <div className="text-right">
-                        <span className="text-3xl font-black text-purple-600 block">${product.price}</span>
+                        <span className="text-3xl font-black text-purple-600 block">₵{product.price}</span>
                         {product.stock > 0 && product.stock < 10 && (
                             <span className="text-xs text-amber-600 font-medium">Only {product.stock} left</span>
                         )}

@@ -71,7 +71,7 @@ export default function ShopHomePage() {
                             </h1>
 
                             <p className="text-xl text-white/90 max-w-lg mx-auto lg:mx-0">
-                                Explore our curated collection of premium products. Free shipping on all orders over $50.
+                                Explore our curated collection of premium products. Free shipping on all orders over ₵50.
                             </p>
 
                             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -117,7 +117,7 @@ export default function ShopHomePage() {
                                     loading="lazy"
                                 />
                                 <p className="mt-3 font-bold text-gray-800">Premium Headphones</p>
-                                <p className="text-purple-600 font-bold">$299.99</p>
+                                <p className="text-purple-600 font-bold">₵299.99</p>
                             </div>
                             <div className="absolute bottom-0 left-0 w-56 h-56 bg-white rounded-3xl shadow-2xl p-4 transform -rotate-6 hover:rotate-0 transition-transform duration-500 animate-float-alt">
                                 <img
@@ -127,7 +127,7 @@ export default function ShopHomePage() {
                                     loading="lazy"
                                 />
                                 <p className="mt-3 font-bold text-gray-800">Smart Watch</p>
-                                <p className="text-purple-600 font-bold">$199.99</p>
+                                <p className="text-purple-600 font-bold">₵199.99</p>
                             </div>
                             <div className="absolute top-1/2 left-1/4 w-48 h-48 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full blur-3xl opacity-30"></div>
                         </div>
@@ -218,7 +218,7 @@ export default function ShopHomePage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {[
-                            { icon: Truck, title: 'Free Shipping', desc: 'On orders over $50', color: 'text-blue-600 bg-blue-100' },
+                            { icon: Truck, title: 'Free Shipping', desc: 'On orders over ₵50', color: 'text-blue-600 bg-blue-100' },
                             { icon: Shield, title: 'Secure Payment', desc: '100% protected', color: 'text-green-600 bg-green-100' },
                             { icon: CreditCard, title: 'Easy Returns', desc: '30-day guarantee', color: 'text-purple-600 bg-purple-100' },
                         ].map((feature, i) => (
@@ -379,7 +379,7 @@ function ProductCard({ product, index, onAddToCart, onBuyNow }) {
                 <div className="flex items-center justify-between mt-auto pt-2">
                     <div>
                         <span className="text-2xl font-black text-purple-600">
-                            ${typeof productData.price === 'number' ? productData.price.toFixed(2) : '0.00'}
+                            ₵{typeof productData.price === 'number' ? productData.price.toFixed(2) : '0.00'}
                         </span>
                     </div>
                 </div>

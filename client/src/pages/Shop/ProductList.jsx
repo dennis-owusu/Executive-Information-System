@@ -39,7 +39,7 @@ export default function ProductList() {
               <Card key={p._id}>
                 <CardContent className="space-y-2 p-4">
                   <div className="font-medium">{p.name}</div>
-                  <div className="text-neutral-600">${p.price}</div>
+                  <div className="text-neutral-600">₵{p.price}</div>
                   <Link to={`/product/${p._id}`}><Button variant="outline" className="w-full">View</Button></Link>
                 </CardContent>
               </Card>

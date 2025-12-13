@@ -27,12 +27,13 @@ export default function CheckoutPage() {
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
-  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_c45444fba0ed1a546015617807267ded4552be18';
 
   const config = {
     reference: `ORD-${Date.now()}`,
     email: formData.email,
     amount: Math.round(total * 100), // Paystack expects kobo/cents
+    currency: 'GHS',
     publicKey: publicKey,
     metadata: {
       custom_fields: [
@@ -239,7 +240,7 @@ export default function CheckoutPage() {
                       <span className="text-sm opacity-70">Paystack Secure</span>
                     </div>
                     <p className="text-xs opacity-70 mb-1">Order Total</p>
-                    <p className="text-4xl font-black">${total.toFixed(2)}</p>
+                    <p className="text-4xl font-black">₵{total.toFixed(2)}</p>
                   </div>
 
                   <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
@@ -303,7 +304,7 @@ export default function CheckoutPage() {
                       <p className="font-semibold text-slate-900 text-sm line-clamp-1">{item.name}</p>
                       <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
                     </div>
-                    <p className="font-bold text-slate-900">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-bold text-slate-900">₵{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -311,21 +312,21 @@ export default function CheckoutPage() {
               <div className="space-y-3 pt-4 border-t border-slate-200">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal</span>
-                  <span className="font-semibold">${subtotal.toFixed(2)}</span>
+                  <span className="font-semibold">₵{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Shipping</span>
                   <span className={`font-semibold ${shipping === 0 ? 'text-green-600' : ''}`}>
-                    {shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}
+                    {shipping === 0 ? 'FREE' : `₵${shipping.toFixed(2)}`}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Tax</span>
-                  <span className="font-semibold">${tax.toFixed(2)}</span>
+                  <span className="font-semibold">₵{tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-3 border-t border-slate-200">
                   <span className="font-bold text-slate-900">Total</span>
-                  <span className="text-2xl font-black text-purple-600">${total.toFixed(2)}</span>
+                  <span className="text-2xl font-black text-purple-600">₵{total.toFixed(2)}</span>
                 </div>
               </div>
             </div>

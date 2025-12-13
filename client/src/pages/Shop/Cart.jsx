@@ -87,25 +87,25 @@ export default function CartPage() {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal ({cart.length} items)</span>
-                  <span className="font-semibold text-slate-900">${subtotal.toFixed(2)}</span>
+                  <span className="font-semibold text-slate-900">₵{subtotal.toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between text-slate-600">
                   <span>Shipping</span>
                   <span className="font-semibold text-green-600">
-                    {shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}
+                    {shipping === 0 ? 'FREE' : `₵${shipping.toFixed(2)}`}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-slate-600">
                   <span>Tax (8%)</span>
-                  <span className="font-semibold text-slate-900">${tax.toFixed(2)}</span>
+                  <span className="font-semibold text-slate-900">₵{tax.toFixed(2)}</span>
                 </div>
 
                 {shipping > 0 && (
                   <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
                     <p className="text-sm text-amber-800">
-                      Add <span className="font-bold">${(50 - subtotal).toFixed(2)}</span> more for FREE shipping!
+                      Add <span className="font-bold">₵{(50 - subtotal).toFixed(2)}</span> more for FREE shipping!
                     </p>
                   </div>
                 )}
@@ -113,7 +113,7 @@ export default function CartPage() {
                 <div className="pt-4 border-t border-slate-200">
                   <div className="flex justify-between items-baseline">
                     <span className="text-lg font-bold text-slate-900">Total</span>
-                    <span className="text-3xl font-black text-purple-600">${total.toFixed(2)}</span>
+                    <span className="text-3xl font-black text-purple-600">₵{total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -207,10 +207,10 @@ function CartItem({ item, index, onUpdateQuantity, onRemove }) {
 
           <div className="text-right">
             <span className="text-2xl font-black text-purple-600">
-              ${(item.price * item.quantity).toFixed(2)}
+              ₵{(item.price * item.quantity).toFixed(2)}
             </span>
             {item.quantity > 1 && (
-              <p className="text-xs text-slate-400">${item.price} each</p>
+              <p className="text-xs text-slate-400">₵{item.price} each</p>
             )}
           </div>
         </div>
