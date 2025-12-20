@@ -1,107 +1,177 @@
-import axios from 'axios'
-
-const DEFAULT_API_URL = 'https://executive-information-system.onrender.com'
-const apiBase = (() => {
-  const envUrl = import.meta.env.VITE_API_URL
-  if (envUrl) return envUrl
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:4000'
-  }
-  return DEFAULT_API_URL
-})()
+import axios from 'axios';
 
 const api = axios.create({
-  baseURL: apiBase
-})
+  baseURL: 'http://localhost:4000/api',
+  withCredentials: true
+});
 
+// Add token interceptor if needed
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-export async function login(email, password, role = 'user') {
-  const { data } = await api.post('/auth/login', { email, password, role })
-  localStorage.setItem('token', data.token)
-  localStorage.setItem('user', JSON.stringify(data.user))
-  return data.user
-}
-
-export async function register(userData) {
-  const { data } = await api.post('/auth/register', userData)
-  localStorage.setItem('token', data.token)
-  localStorage.setItem('user', JSON.stringify(data.user))
-  return data.user
-}
-
-export async function getMe() {
-  const token = localStorage.getItem('token')
-  if (!token) throw new Error('no')
-  const { data } = await api.get('/auth/me')
-  return data.user
-}
-
+// Existing functions from history
 export async function getProducts(params = {}) {
-  try {
-    const { data } = await api.get('/products', { params })
-    return data
-  } catch {
-    // Fallback if backend /products fails (for dev resilience)
-    const { listProducts } = await import('./mockApi.js')
-    return listProducts(params)
-  }
+  const { data } = await api.get('/route/allproducts', { params });
+  return data;
 }
 
-export async function createProduct(formData) {
-  const { data } = await api.post('/products', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
-  return data
+export async function getAllCategories() {
+  const { data } = await api.get('/route/allcategories');
+  return data;
 }
 
-// Order & User API
-export async function createOrder(orderData) {
-  const { data } = await api.post('/api/orders', orderData)
-  return data
-}
-
-export async function getMyOrders() {
-  const { data } = await api.get('/api/orders/my-orders')
-  return data
-}
-
-export async function getCustomers() {
-  const { data } = await api.get('/api/users')
-  return data
-}
-
-// Analytics (Keep mock fallback for now if no backend impl)
 export async function getSalesSummary(params = {}) {
-  try {
-    const { data } = await api.get('/analytics/sales/summary', { params })
-    return data
-  } catch {
-    const { salesSummary } = await import('./mockApi.js')
-    return salesSummary(params)
-  }
+  const { data } = await api.get('/route/sales-summary', { params });
+  return data;
 }
 
 export async function getOperationsSummary() {
-  try {
-    const { data } = await api.get('/analytics/operations/summary')
-    return data
-  } catch {
-    const { operationsSummary } = await import('./mockApi.js')
-    return operationsSummary()
+  const { data } = await api.get('/route/operations-summary');
+  return data;
+}
+
+// New function for AI insights
+export async function getAIInsights(question) {
+  const { data } = await api.post('/ai/ask', { question });
+  return data.answer;
+}
+
+// Dashboard functions
+export async function getDashboardStats(params = {}) {
+  const { data } = await api.get('/route/dashboard/stats', { params });
+  return data;
+}
+
+export async function getDashboardChartData(params = {}) {
+  // Default to monthly period if not specified
+  if (!params.period) {
+    params.period = 'monthly';
   }
+  const response = await api.get('/route/analytics', { params });
+  const salesData = response.data.data.salesData || [];
+  return {
+    labels: salesData.map(item => item.date),
+    datasets: [{
+      data: salesData.map(item => item.sales)
+    }]
+  };
 }
 
-export async function getDashboardStats() {
-  const { data } = await api.get('/dashboard/stats')
-  return data
+export async function createProduct(formData) {
+  const { data } = await api.post('/route/products', formData, {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return data;
 }
 
-export async function getDashboardChartData() {
-  const { data } = await api.get('/dashboard/chart-data')
-  return data
+export async function deleteProduct(productId) {
+  const { data } = await api.delete(`/route/delete/${productId}`);
+  return data;
+}
+
+export async function updateProduct(productId, formData) {
+  const { data } = await api.put(`/route/update/${productId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return data;
+}
+
+export async function getCustomers(params = {}) {
+  const { data } = await api.get('/auth/get-all-users', { params });
+  return data;
+}
+
+export async function getCategories() {
+  const { data } = await api.get('/route/allcategories');
+  return data;
+}
+
+export async function createCategory(categoryData) {
+  const { data } = await api.post('/route/categories', categoryData);
+  return data;
+}
+
+export async function updateCategory(id, categoryData) {
+  const { data } = await api.put(`/route/update-categories/${id}`, categoryData);
+  return data;
+}
+
+export async function deleteCategory(id) {
+  const { data } = await api.delete(`/route/category/delete/${id}`);
+  return data;
+}
+
+export async function uploadImage(file) {
+  const formData = new FormData();
+  formData.append('images', file);
+  
+  const { data } = await api.post('/route/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return data;
+}
+
+export async function login(userData) {
+  const response = await api.post('/auth/login', userData, {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  
+  // Debug: log the full response structure
+  console.log('Login API response:', response);
+  console.log('Login API response.data:', response.data);
+  
+  const data = response.data;
+  
+  // Store user data and token in localStorage for client-side use
+  if (data && data._id) {
+    localStorage.setItem('user', JSON.stringify(data));
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+  }
+  return data;
+}
+
+export async function register(userData) {
+  console.log('Register API called with:', userData);
+  const { data } = await api.post('/auth/create', userData, {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  console.log('Register API response:', data);
+  // Store user data and token in localStorage for client-side use
+  if (data && data._id) {
+    localStorage.setItem('user', JSON.stringify(data));
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+  }
+  return data;
+}
+
+// Order functions
+export async function createOrder(orderData) {
+  const { data } = await api.post('/createOrder', orderData);
+  return data;
+}
+
+export async function verifyPayment(paymentData) {
+  const { data } = await api.post('/verify-payment', paymentData);
+  return data;
+}
+
+export async function getMyOrders() {
+  const { data } = await api.get('/route/getMyOrders');
+  return data;
+}
+
+export async function getAllOrders() {
+  const { data } = await api.get('/route/getOrders');
+  return data;
 }

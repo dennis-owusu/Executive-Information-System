@@ -24,6 +24,7 @@ export default function MyOrdersPage() {
     }, []);
 
     const statusConfig = {
+        pending: { label: 'Pending', icon: Clock, color: 'bg-slate-100 text-slate-700 border-slate-200' },
         delivered: { label: 'Delivered', icon: CheckCircle2, color: 'bg-green-100 text-green-700 border-green-200' },
         processing: { label: 'Processing', icon: Clock, color: 'bg-amber-100 text-amber-700 border-amber-200' },
         shipped: { label: 'Shipped', icon: Truck, color: 'bg-blue-100 text-blue-700 border-blue-200' },
@@ -49,6 +50,7 @@ export default function MyOrdersPage() {
                 <div className="flex flex-wrap gap-2 mb-8">
                     {[
                         { value: 'all', label: 'All Orders' },
+                        { value: 'pending', label: 'Pending' },
                         { value: 'processing', label: 'Processing' },
                         { value: 'shipped', label: 'Shipped' },
                         { value: 'delivered', label: 'Delivered' },
@@ -126,7 +128,7 @@ function OrderCard({ order, statusConfig, index }) {
                             {status.label}
                         </span>
                         <div className="text-right">
-                            <p className="text-2xl font-black text-purple-600">₵{order.totalAmount?.toFixed(2)}</p>
+                            <p className="text-2xl font-black text-purple-600">₵{Number(order.totalPrice || 0).toFixed(2)}</p>
                             <p className="text-xs text-slate-500">{order.products?.length || 0} items</p>
                         </div>
                     </div>
@@ -147,21 +149,21 @@ function OrderCard({ order, statusConfig, index }) {
                         {order.products.map((item, i) => (
                             <div key={i} className="flex gap-4 items-center bg-white p-3 rounded-xl">
                                 <div className="w-14 h-14 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
-                                    {item.image && <img src={item.image} alt={item.name} className="w-full h-full object-cover" />}
+                                    {item?.product?.productImage && <img src={item.product.productImage.startsWith('http') ? item.product.productImage : `http://localhost:4000${item.product.productImage}`} alt={item.product?.productName || item.product?.name} className="w-full h-full object-cover" />}
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-semibold text-slate-900">{item.name}</p>
+                                    <p className="font-semibold text-slate-900">{item.product?.productName || item.product?.name}</p>
                                     <p className="text-sm text-slate-500">Qty: {item.quantity}</p>
                                 </div>
-                                <p className="font-bold text-slate-900">₵{item.priceAtPurchase?.toFixed(2)}</p>
+                                <p className="font-bold text-slate-900">₵{Number(item.product?.productPrice || item.product?.price || 0).toFixed(2)}</p>
                             </div>
                         ))}
                     </div>
                     <div className="mt-4 pt-4 border-t border-slate-200">
                         <h4 className="font-bold text-slate-900 mb-2">Shipping To:</h4>
-                        <p className="text-sm text-slate-600">{order.shippingAddress?.firstName} {order.shippingAddress?.lastName}</p>
-                        <p className="text-sm text-slate-600">{order.shippingAddress?.address}</p>
-                        <p className="text-sm text-slate-600">{order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zip}</p>
+                        <p className="text-sm text-slate-600">{order.userInfo?.name}</p>
+                        <p className="text-sm text-slate-600">{order.address}</p>
+                        <p className="text-sm text-slate-600">{order.city}{order.state ? `, ${order.state}` : ''}{order.postalCode ? ` ${order.postalCode}` : ''}</p>
                     </div>
                 </div>
             )}

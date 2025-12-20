@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import Categories from './pages/Categories';
 import Orders from './pages/Orders';
 import Analytics from './pages/Analytics';
 import Customers from './pages/Customers';
@@ -10,6 +11,7 @@ import Settings from './pages/Settings';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import ProtectedRoute from './routes/ProtectedRoute';
+import ProductDetail from './pages/Shop/ProductDetail';
 
 // Shop pages
 import ShopHome from './pages/Shop/ShopHome';
@@ -29,6 +31,7 @@ export default function App() {
       {/* Shop Routes (Public) */}
       <Route path="/shop" element={<ShopHome />} />
       <Route path="/shop/products" element={<ShopProducts />} />
+      <Route path="/shop/product/:id" element={<ProductDetail />} />
       <Route path="/shop/cart" element={<Cart />} />
       <Route path="/shop/checkout" element={<Checkout />} />
       <Route path="/shop/order-success" element={<OrderSuccess />} />
@@ -43,6 +46,7 @@ export default function App() {
       }>
         <Route index element={<Dashboard />} />
         <Route path="products" element={<Products />} />
+        <Route path="categories" element={<Categories />} />
         <Route path="orders" element={<Orders />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="customers" element={<Customers />} />

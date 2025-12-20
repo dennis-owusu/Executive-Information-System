@@ -155,10 +155,10 @@ function CartItem({ item, index, onUpdateQuantity, onRemove }) {
     >
       {/* Image */}
       <div className="w-28 h-28 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0">
-        {item.images?.[0]?.url && !imageError ? (
+        {item.productImage && !imageError ? (
           <img
-            src={item.images[0].url}
-            alt={item.name}
+            src={item.productImage.startsWith('http') ? item.productImage : `http://localhost:4000${item.productImage}`}
+            alt={item.productName || item.name}
             onError={() => setImageError(true)}
             className="w-full h-full object-cover"
           />
@@ -173,7 +173,7 @@ function CartItem({ item, index, onUpdateQuantity, onRemove }) {
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h3 className="font-bold text-slate-900 line-clamp-1">{item.name}</h3>
+            <h3 className="font-bold text-slate-900 line-clamp-1">{item.productName || item.name}</h3>
             {item.categories?.length > 0 && (
               <p className="text-sm text-slate-500">{item.categories[0]}</p>
             )}
@@ -207,10 +207,10 @@ function CartItem({ item, index, onUpdateQuantity, onRemove }) {
 
           <div className="text-right">
             <span className="text-2xl font-black text-purple-600">
-              ₵{(item.price * item.quantity).toFixed(2)}
+              ₵{((item.productPrice || item.price) * item.quantity).toFixed(2)}
             </span>
             {item.quantity > 1 && (
-              <p className="text-xs text-slate-400">₵{item.price} each</p>
+              <p className="text-xs text-slate-400">₵{item.productPrice || item.price} each</p>
             )}
           </div>
         </div>

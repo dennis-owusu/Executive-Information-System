@@ -23,11 +23,15 @@ export default function SettingsPage() {
     return (
         <div className="p-6 space-y-6 max-w-[1400px] mx-auto animate-fade-in">
             {/* Header */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-accent to-success p-8 shadow-alibaba-lg">
+            {/* Header */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-700 to-gray-800 p-8 shadow-xl">
                 <div className="absolute inset-0 bg-grid opacity-10"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4"></div>
+
                 <div className="relative">
                     <h1 className="text-3xl font-bold text-white mb-2">System Settings</h1>
-                    <p className="text-white/90">Manage your application preferences and configuration</p>
+                    <p className="text-slate-300">Manage your application preferences and configuration</p>
                 </div>
             </div>
 

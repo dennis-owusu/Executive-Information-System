@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login, register } from '../../services/api.js';
+import { getDashboardRoute } from '../../utils/auth';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, User } from 'lucide-react';
 
 export default function Login() {
@@ -13,38 +14,66 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
   async function submit(e) {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
+      console.log('Selected role for registration:', role);
       let response;
       if (isRegistering) {
-        response = await register({ email, password, firstName, lastName, role });
+        console.log('Registering with role:', role);
+        response = await register({ email, password, firstName, lastName, usersRole: role });
+        console.log('Registration response:', response);
+        setSuccess('Account created successfully! Redirecting...');
       } else {
-        response = await login(email, password, role);
+        response = await login({ email, password });
+        console.log('Login response:', response);
+        setSuccess('Login successful! Redirecting...');
       }
-
-      // Response is already user object due to api.js wrapper, but wait api.js login returns data.user
-      // Let's verify api.js:
-      // login: returns data.user
-      // register: returns data.user
-
-      // Store user data in localStorage (api.js does this too, but redundancy is fine)
-      // Actually api.js handles it.
-
-      // Redirect based on role
-      const userRole = response.role || role;
-      if (userRole === 'admin' || userRole === 'executive') {
-        navigate('/');
-      } else {
-        navigate('/shop');
+      
+      // Debug: Check the full user object structure
+      console.log('Full user object:', response);
+      console.log('User object keys:', response ? Object.keys(response) : 'No response');
+      console.log('usersRole from response:', response?.usersRole);
+      console.log('role from response:', response?.role);
+      
+      // Get the actual user role from response
+      const userRole = response.usersRole || response.role || role;
+      console.log('User role detected:', userRole);
+      
+      // Store user data in localStorage immediately BEFORE getting dashboard route
+      if (response && response._id) {
+        localStorage.setItem('user', JSON.stringify(response));
+        localStorage.setItem('token', response.token || 'authenticated');
+        console.log('User data stored in localStorage');
       }
+      
+      // Navigate to appropriate dashboard based on role (now localStorage has the data)
+      const dashboardRoute = getDashboardRoute();
+      console.log('Navigating to:', dashboardRoute);
+      
+      // Navigate immediately (no delay needed)
+      navigate(dashboardRoute);
     } catch (err) {
-      console.error(err);
-      setError(isRegistering ? 'Registration failed. Email might be taken.' : 'Login failed. Please check your credentials.');
+      console.error('Auth error:', err);
+      console.error('Error response:', err.response);
+      console.error('Error message:', err.message);
+      
+      let errorMessage = isRegistering ? 'Registration failed. Email might be taken.' : 'Login failed. Please check your credentials.';
+      
+      // More specific error messages based on response
+      if (err.response && err.response.data && err.response.data.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -123,6 +152,12 @@ export default function Login() {
               {error && (
                 <div className="mb-6 p-4 bg-error/10 border border-error/30 rounded-xl animate-shake">
                   <p className="text-sm text-error font-medium">{error}</p>
+                </div>
+              )}
+              
+              {success && (
+                <div className="mb-6 p-4 bg-success/10 border border-success/30 rounded-xl">
+                  <p className="text-sm text-success font-medium">{success}</p>
                 </div>
               )}
 

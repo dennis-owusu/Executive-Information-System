@@ -1,0 +1,518 @@
+import Order from '../models/order.model.js';
+import Product from '../models/product.model.js';
+import User from '../models/users.model.js';
+import Payment from '../models/payment.model.js';
+import { errorHandler } from '../utils/error.js';
+
+export const createOrder = async (req, res) => {
+  try {
+    const { user, userInfo, products, totalPrice, address, city, state, phoneNumber, orderNumber, postalCode, paymentMethod } = req.body;
+    if (!products || products.length === 0 || totalPrice == null || !address || !city || !state || !phoneNumber || !postalCode || !paymentMethod) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+    if (!user && (!userInfo || !userInfo.name || !userInfo.email || !userInfo.phoneNumber)) {
+      return res.status(400).json({ message: 'User or userInfo is required' });
+    }
+
+    // Fetch product details, check stock, and update
+    const populatedProducts = await Promise.all(
+      products.map(async (item) => {
+        const product = await Product.findById(item.product);
+        if (!product) {
+          throw new Error(`Product not found: ${item.product}`);
+        }
+        if (product.numberOfProductsAvailable < item.quantity) {
+          throw new Error(`Insufficient stock for ${product.productName}`);
+        }
+        product.numberOfProductsAvailable -= item.quantity;
+        await product.save();
+
+        // Check for low stock
+        if (product.numberOfProductsAvailable <= product.reorderPoint) {
+          const io = req.app.get('io');
+          io.to(product.outlet.toString()).emit('lowStockAlert', {
+            productId: product._id,
+            productName: product.productName,
+            remainingStock: product.numberOfProductsAvailable,
+            message: `Low stock alert for ${product.productName}. Remaining: ${product.numberOfProductsAvailable}`
+          });
+        }
+
+        return {
+          product: {
+            id: product._id,
+            name: product.productName,
+            price: product.productPrice,
+            images: product.productImage ? [product.productImage] : [],
+            category: product.category,
+            outlet: product.outlet || { name: 'Unknown Outlet' },
+          },
+          quantity: item.quantity,
+        };
+      })
+    );
+
+    let orderUserInfo = userInfo;
+    if (user) {
+      const userDoc = await User.findById(user);
+      if (!userDoc) {
+        throw new Error('User not found');
+      }
+      orderUserInfo = {
+        name: userDoc.name,
+        email: userDoc.email,
+        phoneNumber: userDoc.phoneNumber
+      };
+    }
+
+    const order = new Order({
+      user,
+      userInfo: orderUserInfo,
+      products: populatedProducts,
+      totalPrice,
+      address,
+      city,
+      state,
+      orderNumber,
+      phoneNumber,
+      postalCode,
+      paymentMethod,
+    });
+    await order.save();
+    res.status(201).json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to create order' });
+  }
+};
+
+export const getOrders = async (req, res) => {
+  try {
+    console.log('Fetching all orders (admin view)');
+    
+    const startIndex = parseInt(req.query.startIndex) || 0;
+    const limit = parseInt(req.query.limit) || 50;
+    const searchTerm = req.query.searchTerm || '';
+    const status = req.query.status;
+    
+    let query = {};
+    
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    if (searchTerm) {
+      query.$or = [
+        { orderNumber: { $regex: searchTerm, $options: 'i' } },
+        { 'products.product.name': { $regex: searchTerm, $options: 'i' } }
+      ];
+    }
+    
+    const totalOrders = await Order.countDocuments(query);
+    const orders = await Order.find(query)
+      .populate('user', 'name email phoneNumber')
+      .sort({ createdAt: -1 })
+      .skip(startIndex)
+      .limit(limit);
+      
+    console.log(`Found ${orders.length} orders out of ${totalOrders} total`);
+    res.status(200).json({ orders, totalOrders });
+  } catch (error) {
+    console.error('Error fetching all orders:', error);
+    res.status(500).json({ message: error.message || 'Failed to fetch orders' });
+  }
+};
+
+export const getOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate('user', 'name email phoneNumber');
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    res.status(200).json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to fetch order' });
+  }
+};
+
+export const updateOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    const newStatus = req.body.status || order.status;
+    if (order.status !== newStatus) {
+      order.status = newStatus;
+      await order.save();
+      // Emit Socket.IO event for real-time notification
+      const io = req.app.get('io');
+      if (order.user) {
+        io.to(order.user.toString()).emit('orderStatusUpdated', {
+          orderId: order._id,
+          newStatus: order.status,
+          message: `Your order ${order.orderNumber} status has been updated to ${order.status}`
+        });
+      }
+      // Emit to outlets
+      const outletIds = [...new Set(order.products
+        .filter(p => p.product.outlet && typeof p.product.outlet === 'object' && p.product.outlet.toString) // Ensure it's an ObjectId
+        .map(p => p.product.outlet.toString())
+      )];
+      outletIds.forEach(outletId => {
+        io.to(outletId).emit('orderStatusUpdated', {
+          orderId: order._id,
+          newStatus: order.status,
+          message: `Order ${order.orderNumber} status updated to ${order.status}`
+        });
+      });
+    }
+    res.status(200).json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to update order' });
+  }
+};
+
+export const deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    await order.deleteOne();
+    res.status(200).json({ message: 'Order deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to delete order' });
+  }
+};
+
+export const getOrdersByUser = async (req, res) => {
+  const userId = req.params.id;
+  const startIndex = parseInt(req.query.startIndex) || 0;
+  const limit = parseInt(req.query.limit) || 10;
+  const searchTerm = req.query.searchTerm || '';
+  const status = req.query.status;
+  const dateFrom = req.query.dateFrom;
+  const dateTo = req.query.dateTo;
+
+  let query = { user: userId };
+
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+
+  if (searchTerm) {
+    query.$or = [
+      { orderNumber: { $regex: searchTerm, $options: 'i' } },
+      { 'products.product.name': { $regex: searchTerm, $options: 'i' } }
+    ];
+  }
+
+  let dateFilter = {};
+  if (dateFrom) {
+    dateFilter.$gte = new Date(dateFrom);
+  }
+  if (dateTo) {
+    const toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    dateFilter.$lte = toDate;
+  }
+  if (Object.keys(dateFilter).length > 0) {
+    query.createdAt = dateFilter;
+  }
+
+  try {
+    const totalOrders = await Order.countDocuments(query);
+    const orders = await Order.find(query)
+      .populate('user', 'name email phoneNumber')
+      .sort({ createdAt: -1 })
+      .skip(startIndex)
+      .limit(limit);
+    res.status(200).json({ orders, totalOrders });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to fetch user orders' });
+  }
+};
+
+export const getOutletOrders = async (req, res) => {
+  const outletId = req.params.outletId;
+  const startIndex = parseInt(req.query.startIndex) || 0;
+  const limit = parseInt(req.query.limit) || 10;
+  const searchTerm = req.query.searchTerm || '';
+  const status = req.query.status;
+  const dateRange = req.query.dateRange;
+
+  console.log('Outlet ID received:', outletId);
+  
+  // Find all products for this outlet
+  const products = await Product.find({ outlet: outletId });
+  const productIds = products.map(product => product._id.toString());
+  console.log('Product IDs for this outlet:', productIds);
+  
+  // Find orders containing these products
+  let query = {};
+  
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+
+  if (searchTerm) {
+    query.orderNumber = { $regex: searchTerm, $options: 'i' };
+  }
+
+  let dateFilter = {};
+  if (dateRange) {
+    const now = new Date();
+    switch (dateRange) {
+      case 'today':
+        dateFilter = { createdAt: { $gte: new Date(now.setHours(0,0,0,0)) } };
+        break;
+      case 'yesterday':
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        dateFilter = { createdAt: { $gte: new Date(yesterday.setHours(0,0,0,0)), $lt: new Date(now.setHours(0,0,0,0)) } };
+        break;
+      case 'last7days':
+        const last7 = new Date(now);
+        last7.setDate(last7.getDate() - 7);
+        dateFilter = { createdAt: { $gte: last7 } };
+        break;
+      case 'last30days':
+        const last30 = new Date(now);
+        last30.setDate(last30.getDate() - 30);
+        dateFilter = { createdAt: { $gte: last30 } };
+        break;
+    }
+    query = { ...query, ...dateFilter };
+  }
+
+  try {
+    // Get all orders
+    const allOrders = await Order.find(query)
+      .populate('user', 'name email phoneNumber')
+      .sort({ createdAt: -1 });
+    
+    // Filter orders that contain products from this outlet
+    const outletOrders = allOrders.filter(order => {
+      // Check if any product in the order matches the outlet's products
+      return order.products.some(item => {
+        // For each product in the order, check if it's from our outlet
+        // This requires the original product ID which we don't have in the embedded data
+        // Instead, we'll check if the product name matches any of our outlet's products
+        return products.some(outletProduct => 
+          outletProduct.productName === item.product.name
+        );
+      });
+    });
+    
+    console.log(`Found ${outletOrders.length} orders for outlet ${outletId} out of ${allOrders.length} total orders`);
+    
+    // Apply pagination
+    const paginatedOrders = outletOrders.slice(startIndex, startIndex + limit);
+    
+    res.status(200).json({ orders: paginatedOrders, totalOrders: outletOrders.length });
+  } catch (error) {
+    console.error('Error fetching outlet orders:', error);
+    res.status(500).json({ message: error.message || 'Failed to fetch outlet orders' });
+  }
+};
+
+// Verify MTN Mobile Money payment and update order status
+export const verifyMomoPayment = async (req, res) => {
+  try {
+    const { transactionId } = req.params;
+    const { status } = req.body;
+    
+    if (!transactionId) {
+      return res.status(400).json({ success: false, message: 'Transaction ID is required' });
+    }
+    
+    // Find order with this transaction ID
+    const order = await Order.findOne({ momoTransactionId: transactionId });
+    
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'No order found with this transaction ID' });
+    }
+    
+    // Update order status based on payment status
+    if (status === 'SUCCESSFUL' || status === 'SUCCESS') {
+      order.status = 'processing'; // Move from pending to processing after payment
+      await order.save();
+      
+      // Emit Socket.IO event for real-time notification
+      const io = req.app.get('io');
+      if (order.user) {
+        io.to(order.user.toString()).emit('paymentConfirmed', {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          message: `Your payment for order ${order.orderNumber} has been confirmed!`
+        });
+      }
+      
+      // Notify outlet about the payment confirmation
+      const outletIds = [...new Set(order.products
+        .filter(p => p.product.outlet && typeof p.product.outlet === 'object' && p.product.outlet.toString) 
+        .map(p => p.product.outlet.toString())
+      )];
+      
+      outletIds.forEach(outletId => {
+        io.to(outletId).emit('paymentConfirmed', {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          message: `Payment confirmed for order ${order.orderNumber}`
+        });
+      });
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Payment verified and order updated successfully',
+        order
+      });
+    } else {
+      // Payment failed
+      order.status = 'cancelled'; // Mark as cancelled if payment failed
+      await order.save();
+      
+      return res.status(200).json({
+        success: false,
+        message: 'Payment verification failed',
+        order
+      });
+    }
+  } catch (error) {
+    console.error('Error verifying MTN Mobile Money payment:', error);
+    res.status(500).json({ success: false, message: 'Failed to verify payment' });
+  }
+};
+
+export const verifyPayment = async (req, res) => {
+  console.log('Payment Verification Request:', {
+    user: req.user?.id,
+    reference: req.body.reference
+  });
+
+  try {
+    const { reference, products, shippingAddress } = req.body;
+
+    // Validate Input
+    if (!reference) throw new Error('Payment reference is required');
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      throw new Error('Invalid products data');
+    }
+
+    // Calculate expected amount from products (Security)
+    const productIds = products.map(p => p._id);
+    const dbProducts = await Product.find({ _id: { $in: productIds } });
+    
+    let calculatedTotal = 0;
+    const finalProducts = [];
+
+    for (const item of products) {
+      const dbProduct = dbProducts.find(p => p._id.toString() === item._id);
+      if (!dbProduct) {
+        console.error(`Product not found: ${item._id}`);
+        throw new Error(`Product not found: ${item.name || item._id}`);
+      }
+      
+      calculatedTotal += dbProduct.productPrice * item.quantity;
+      finalProducts.push({
+        product: dbProduct._id,
+        quantity: item.quantity,
+        priceAtPurchase: dbProduct.productPrice,
+        name: dbProduct.productName,
+        image: dbProduct.productImage || ''
+      });
+    }
+
+    // Create Order
+    const newOrder = new Order({
+      user: req.user.id,
+      products: finalProducts,
+      totalPrice: calculatedTotal,
+      address: shippingAddress.address,
+      city: shippingAddress.city,
+      state: shippingAddress.state,
+      phoneNumber: shippingAddress.phone,
+      postalCode: shippingAddress.zip || '00000',
+      paymentMethod: 'card',
+      status: 'processing'
+    });
+
+    const savedOrder = await newOrder.save();
+    console.log('Order saved:', savedOrder._id);
+
+    // Create Payment
+    const newPayment = new Payment({
+      referenceId: reference,
+      userId: req.user.id,
+      orderId: savedOrder._id,
+      amount: calculatedTotal,
+      paymentMethod: 'card',
+      payerEmail: req.user.email || 'customer@example.com',
+      status: 'paid'
+    });
+
+    const savedPayment = await newPayment.save();
+    console.log('Payment saved:', savedPayment._id);
+
+    res.status(201).json({ 
+      success: true, 
+      order: savedOrder, 
+      payment: savedPayment 
+    });
+
+  } catch (error) {
+    console.error('Verify Payment Error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get orders for the current user (using req.user from auth middleware)
+export const getMyOrders = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const startIndex = parseInt(req.query.startIndex) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+    
+    console.log('Fetching orders for user ID:', userId);
+    
+    // For debugging: if userId is 'default-user-id', return empty orders
+    if (userId === 'default-user-id') {
+      console.log('Using default user ID, returning empty orders for debugging');
+      return res.status(200).json({ orders: [], totalOrders: 0 });
+    }
+    
+    let query = { user: userId };
+    
+    // Apply status filter if provided
+    if (req.query.status && req.query.status !== 'all') {
+      query.status = req.query.status;
+    }
+    
+    // Apply date filters if provided
+    let dateFilter = {};
+    if (req.query.dateFrom) {
+      dateFilter.$gte = new Date(req.query.dateFrom);
+    }
+    if (req.query.dateTo) {
+      const toDate = new Date(req.query.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      dateFilter.$lte = toDate;
+    }
+    if (Object.keys(dateFilter).length > 0) {
+      query.createdAt = dateFilter;
+    }
+
+    const totalOrders = await Order.countDocuments(query);
+    const orders = await Order.find(query)
+      .populate('user', 'name email phoneNumber')
+      .sort({ createdAt: -1 })
+      .skip(startIndex)
+      .limit(limit);
+      
+    console.log(`Found ${orders.length} orders for user ${userId}`);
+    res.status(200).json({ orders, totalOrders });
+  } catch (error) {
+    console.error('Error fetching my orders:', error);
+    res.status(500).json({ message: error.message || 'Failed to fetch your orders' });
+  }
+};

@@ -15,13 +15,19 @@ export default function ProtectedRoute({ children, allowedRoles = ['admin', 'exe
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
+      
+      // Get the correct role field (usersRole or role)
+      const userRole = user.usersRole || user.role;
+      console.log('[PROTECTED_ROUTE][DEBUG]', 'User role:', userRole, 'Allowed roles:', allowedRoles);
 
       // If user role is not in allowed roles, redirect to shop
-      if (!allowedRoles.includes(user.role)) {
+      if (!allowedRoles.includes(userRole)) {
+        console.log('[PROTECTED_ROUTE][DEBUG]', 'Role not allowed, redirecting to /shop');
         return <Navigate to="/shop" replace />;
       }
     } catch (e) {
       // Invalid user data, clear and redirect to login
+      console.error('[PROTECTED_ROUTE][ERROR]', 'Error parsing user data:', e);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       return <Navigate to="/login" replace />;

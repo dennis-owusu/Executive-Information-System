@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Package, Truck, Shield, CreditCard, ArrowRight, Star, Heart, Zap, Gift, Clock } from 'lucide-react';
 import ShopNavbar from '../../components/ShopNavbar';
-import { getProducts } from '../../services/api';
 import { useCart } from '../../contexts/CartContext';
+import { getProducts } from '../../services/api';
 
 export default function ShopHomePage() {
     const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -16,7 +16,8 @@ export default function ShopHomePage() {
             try {
                 // Ensure your API function handles queries correctly
                 const data = await getProducts({ limit: 8 });
-                setFeaturedProducts(data?.items || []);
+                console.log('[ShopHome] API Response:', data); // Debug log
+                setFeaturedProducts(data?.products || data?.items || []);
             } catch (error) {
                 console.error("Failed to fetch featured products", error);
                 setFeaturedProducts([]);
@@ -312,10 +313,10 @@ function ProductCard({ product, index, onAddToCart, onBuyNow }) {
         >
             <div className="relative aspect-square bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
                 <Link to={productLink} className="block w-full h-full">
-                    {productData.images?.[0]?.url && !imageError ? (
+                    {productData.productImage && !imageError ? (
                         <img
-                            src={productData.images[0].url}
-                            alt={productData.name}
+                            src={productData.productImage.startsWith('http') ? productData.productImage : `http://localhost:4000${productData.productImage}`}
+                            alt={productData.productName || productData.name}
                             onError={() => setImageError(true)}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                             loading="lazy"
@@ -372,14 +373,15 @@ function ProductCard({ product, index, onAddToCart, onBuyNow }) {
                     </div>
 
                     <h3 className="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors h-12">
-                        {productData.name}
+                        {productData.productName || productData.name}
                     </h3>
                 </Link>
 
                 <div className="flex items-center justify-between mt-auto pt-2">
                     <div>
                         <span className="text-2xl font-black text-purple-600">
-                            ₵{typeof productData.price === 'number' ? productData.price.toFixed(2) : '0.00'}
+                            ₵{typeof productData.productPrice === 'number' ? productData.productPrice.toFixed(2) : 
+                               typeof productData.price === 'number' ? productData.price.toFixed(2) : '0.00'}
                         </span>
                     </div>
                 </div>

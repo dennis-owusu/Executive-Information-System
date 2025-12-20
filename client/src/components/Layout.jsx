@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     Package,
+    Tag,
     ShoppingCart,
     Users,
     BarChart3,
@@ -63,6 +64,7 @@ export default function Layout() {
                 <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                     <NavItem to="/" icon={LayoutDashboard} label="Dashboard" collapsed={!sidebarOpen} />
                     <NavItem to="/products" icon={Package} label="Products" collapsed={!sidebarOpen} />
+                    <NavItem to="/categories" icon={Tag} label="Categories" collapsed={!sidebarOpen} />
                     <NavItem to="/orders" icon={ShoppingCart} label="Orders" collapsed={!sidebarOpen} />
                     <NavItem to="/analytics" icon={BarChart3} label="Analytics" collapsed={!sidebarOpen} />
                     <NavItem to="/customers" icon={Users} label="Customers" collapsed={!sidebarOpen} />

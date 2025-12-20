@@ -1,9 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { getProducts } from '../../services/api';
 import { useCart } from '../../contexts/CartContext';
 import { ShoppingCart, Star, Heart, Filter, Grid, List, SlidersHorizontal, Package, X } from 'lucide-react';
 import ShopNavbar from '../../components/ShopNavbar';
 import { useNavigate } from 'react-router-dom';
+import { getProducts } from '../../services/api';
+
+function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+}
+
+function getRatingText(productId) {
+    const h = hashString(String(productId || ''));
+    return `4.${h % 10}`;
+}
+
+function shouldShowOriginalPrice(productId) {
+    const h = hashString(String(productId || ''));
+    return h % 2 === 1;
+}
 
 export default function ShopProductsPage() {
     const [products, setProducts] = useState([]);
@@ -18,7 +36,8 @@ export default function ShopProductsPage() {
         const fetchProducts = async () => {
             try {
                 const data = await getProducts({ limit: 50 });
-                setProducts(data.items || []);
+                console.log('[ShopProducts] API Response:', data); // Debug log
+                setProducts(data.products || data.items || []);
             } catch (error) {
                 console.error('Failed to fetch products:', error);
             } finally {
@@ -28,8 +47,11 @@ export default function ShopProductsPage() {
         fetchProducts();
     }, []);
 
-    const categories = ['all', ...new Set(products.flatMap(p => p.categories || []))];
-    const filteredProducts = filter === 'all' ? products : products.filter(p => p.categories?.includes(filter));
+    const categories = ['all', ...new Set(products.map(p => p.category?.categoryName || p.category || 'Uncategorized').filter(Boolean))];
+    const filteredProducts = filter === 'all' ? products : products.filter(p => {
+      const productCategory = p.category?.categoryName || p.category || 'Uncategorized';
+      return productCategory === filter;
+    });
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -150,6 +172,8 @@ export default function ShopProductsPage() {
 function ProductCardGrid({ product, index, onAddToCart, onBuyNow }) {
     const [imageError, setImageError] = useState(false);
     const [added, setAdded] = useState(false);
+    const ratingText = getRatingText(product?._id);
+    const showDiscount = shouldShowOriginalPrice(product?._id);
 
     const handleAddToCart = () => {
         onAddToCart();
@@ -164,10 +188,10 @@ function ProductCardGrid({ product, index, onAddToCart, onBuyNow }) {
         >
             {/* Image Container */}
             <div className="relative aspect-square bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden">
-                {product.images?.[0]?.url && !imageError ? (
+                {product.productImage && !imageError ? (
                     <img
-                        src={product.images[0].url}
-                        alt={product.name}
+                        src={product.productImage.startsWith('http') ? product.productImage : `http://localhost:4000${product.productImage}`}
+                        alt={product.productName || product.name}
                         onError={() => setImageError(true)}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
@@ -179,13 +203,13 @@ function ProductCardGrid({ product, index, onAddToCart, onBuyNow }) {
 
                 {/* Badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
-                    {product.stock === 0 && (
+                    {product.numberOfProductsAvailable === 0 && (
                         <span className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full">Sold Out</span>
                     )}
-                    {product.stock > 0 && product.stock < 10 && (
-                        <span className="px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full">Only {product.stock} left</span>
+                    {product.numberOfProductsAvailable > 0 && product.numberOfProductsAvailable < 10 && (
+                        <span className="px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full">Only {product.numberOfProductsAvailable} left</span>
                     )}
-                    {index < 3 && product.stock > 0 && (
+                    {index < 3 && product.numberOfProductsAvailable > 0 && (
                         <span className="px-3 py-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white text-xs font-bold rounded-full">🔥 Best Seller</span>
                     )}
                 </div>
@@ -199,17 +223,17 @@ function ProductCardGrid({ product, index, onAddToCart, onBuyNow }) {
                 <div className="absolute inset-x-4 bottom-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
                     <button
                         onClick={handleAddToCart}
-                        disabled={product.stock === 0}
+                        disabled={product.numberOfProductsAvailable === 0}
                         className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all shadow-lg ${added
                                 ? "bg-green-500 text-white"
-                                : product.stock === 0
+                                : product.numberOfProductsAvailable === 0
                                     ? "bg-slate-300 text-slate-500 cursor-not-allowed"
                                     : "bg-white text-slate-900 hover:bg-purple-600 hover:text-white"
                             }`}
                     >
                         {added ? "✓ Added!" : "Add to Cart"}
                     </button>
-                    {product.stock > 0 && (
+                    {product.numberOfProductsAvailable > 0 && (
                         <button
                             onClick={onBuyNow}
                             className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-purple-500/30 transition-all"
@@ -222,27 +246,27 @@ function ProductCardGrid({ product, index, onAddToCart, onBuyNow }) {
 
             {/* Content */}
             <div className="p-5">
-                {product.categories?.length > 0 && (
+                {product.category && (
                     <span className="text-xs font-semibold text-purple-600 uppercase tracking-wider">
-                        {product.categories[0]}
+                        {product.category.categoryName || product.category || 'Uncategorized'}
                     </span>
                 )}
 
                 <h3 className="font-bold text-slate-900 mt-1 mb-2 line-clamp-2 min-h-[48px] group-hover:text-purple-600 transition-colors">
-                    {product.name}
+                    {product.productName || product.name}
                 </h3>
 
                 <div className="flex items-center gap-1 mb-3">
                     {[...Array(5)].map((_, i) => (
                         <Star key={i} size={14} className={i < 4 ? "fill-yellow-400 text-yellow-400" : "text-slate-200"} />
                     ))}
-                    <span className="text-xs text-slate-400 ml-1">(4.{Math.floor(Math.random() * 9)})</span>
+                    <span className="text-xs text-slate-400 ml-1">({ratingText})</span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="text-2xl font-black text-purple-600">₵{product.price}</span>
-                    {Math.random() > 0.5 && (
-                        <span className="text-sm text-slate-400 line-through">₵{(product.price * 1.3).toFixed(0)}</span>
+                    <span className="text-2xl font-black text-purple-600">₵{product.productPrice || product.price}</span>
+                    {showDiscount && (
+                        <span className="text-sm text-slate-400 line-through">₵{((product.productPrice || product.price) * 1.3).toFixed(0)}</span>
                     )}
                 </div>
             </div>
@@ -253,6 +277,7 @@ function ProductCardGrid({ product, index, onAddToCart, onBuyNow }) {
 function ProductCardList({ product, onAddToCart, onBuyNow }) {
     const [imageError, setImageError] = useState(false);
     const [added, setAdded] = useState(false);
+    const ratingText = getRatingText(product?._id);
 
     const handleAddToCart = () => {
         onAddToCart();
@@ -263,10 +288,10 @@ function ProductCardList({ product, onAddToCart, onBuyNow }) {
     return (
         <div className="flex gap-6 bg-white rounded-2xl p-4 shadow-md hover:shadow-xl transition-all">
             <div className="w-40 h-40 flex-shrink-0 rounded-2xl overflow-hidden bg-slate-100">
-                {product.images?.[0]?.url && !imageError ? (
+                {product.productImage && !imageError ? (
                     <img
-                        src={product.images[0].url}
-                        alt={product.name}
+                        src={product.productImage}
+                        alt={product.productName || product.name}
                         onError={() => setImageError(true)}
                         className="w-full h-full object-cover"
                     />
@@ -280,25 +305,25 @@ function ProductCardList({ product, onAddToCart, onBuyNow }) {
             <div className="flex-1 py-2">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        {product.categories?.length > 0 && (
+                        {product.category && (
                             <span className="text-xs font-semibold text-purple-600 uppercase tracking-wider">
-                                {product.categories[0]}
+                                {product.category.categoryName || product.category || 'Uncategorized'}
                             </span>
                         )}
-                        <h3 className="font-bold text-lg text-slate-900 mb-2">{product.name}</h3>
+                        <h3 className="font-bold text-lg text-slate-900 mb-2">{product.productName || product.name}</h3>
                         <p className="text-slate-500 text-sm line-clamp-2 mb-3">{product.description}</p>
                         <div className="flex items-center gap-1">
                             {[...Array(5)].map((_, i) => (
                                 <Star key={i} size={14} className={i < 4 ? "fill-yellow-400 text-yellow-400" : "text-slate-200"} />
                             ))}
-                            <span className="text-xs text-slate-400 ml-1">(4.{Math.floor(Math.random() * 9)})</span>
+                            <span className="text-xs text-slate-400 ml-1">({ratingText})</span>
                         </div>
                     </div>
 
                     <div className="text-right">
-                        <span className="text-3xl font-black text-purple-600 block">₵{product.price}</span>
-                        {product.stock > 0 && product.stock < 10 && (
-                            <span className="text-xs text-amber-600 font-medium">Only {product.stock} left</span>
+                        <span className="text-3xl font-black text-purple-600 block">₵{product.productPrice || product.price}</span>
+                        {product.numberOfProductsAvailable > 0 && product.numberOfProductsAvailable < 10 && (
+                            <span className="text-xs text-amber-600 font-medium">Only {product.numberOfProductsAvailable} left</span>
                         )}
                     </div>
                 </div>
@@ -306,17 +331,17 @@ function ProductCardList({ product, onAddToCart, onBuyNow }) {
                 <div className="flex gap-3 mt-4">
                     <button
                         onClick={handleAddToCart}
-                        disabled={product.stock === 0}
+                        disabled={product.numberOfProductsAvailable === 0}
                         className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all ${added
                                 ? "bg-green-500 text-white"
-                                : product.stock === 0
+                                : product.numberOfProductsAvailable === 0
                                     ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                                     : "bg-slate-100 text-slate-900 hover:bg-purple-600 hover:text-white"
                             }`}
                     >
                         {added ? "✓ Added!" : "Add to Cart"}
                     </button>
-                    {product.stock > 0 && (
+                    {product.numberOfProductsAvailable > 0 && (
                         <button
                             onClick={onBuyNow}
                             className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all"

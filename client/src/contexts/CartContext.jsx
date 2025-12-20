@@ -47,11 +47,18 @@ export function CartProvider({ children }) {
     };
 
     const getTotal = () => {
-        return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        return cart.reduce((sum, item) => {
+            const price = isNaN(Number(item.price)) ? 0 : Number(item.price) || 0;
+            const quantity = isNaN(Number(item.quantity)) ? 0 : Number(item.quantity) || 0;
+            return sum + (price * quantity);
+        }, 0);
     };
 
     const getItemCount = () => {
-        return cart.reduce((sum, item) => sum + item.quantity, 0);
+        return cart.reduce((sum, item) => {
+            const quantity = isNaN(Number(item.quantity)) ? 0 : Number(item.quantity) || 0;
+            return sum + quantity;
+        }, 0);
     };
 
     return (
