@@ -109,6 +109,84 @@ body {
     background: hsl(var(--color-muted-foreground) / 0.3);
 }
 
+/* Dark Mode Styles */
+.dark {
+    /* Dark mode color palette */
+    --color-background: 220 13% 18%; /* #1F2937 */
+    --color-surface: 220 13% 15%; /* #111827 */
+    --color-surface-secondary: 220 13% 20%; /* #1F2937 */
+    --color-foreground: 0 0% 98%; /* #F9FAFB */
+    --color-muted-foreground: 220 9% 80%; /* #9CA3AF */
+    --color-border: 220 13% 25%; /* #374151 */
+    --color-divider: 220 13% 22%; /* #2D3748 */
+    --color-card: 220 13% 15%; /* #111827 */
+    --color-card-foreground: 0 0% 98%; /* #F9FAFB */
+    --color-secondary: 220 13% 25%; /* #374151 */
+    --color-secondary-foreground: 0 0% 98%; /* #F9FAFB */
+    --color-input: 220 13% 25%; /* #374151 */
+}
+
+.dark body {
+    background-color: hsl(var(--color-background));
+    color: hsl(var(--color-foreground));
+}
+
+.dark .bg-white {
+    background-color: hsl(var(--color-surface));
+}
+
+.dark .border-border {
+    border-color: hsl(var(--color-border));
+}
+
+.dark .text-foreground {
+    color: hsl(var(--color-foreground));
+}
+
+.dark .text-muted-foreground {
+    color: hsl(var(--color-muted-foreground));
+}
+
+/* Dark mode for inputs and forms */
+.dark input,
+.dark textarea,
+.dark select {
+    background-color: hsl(var(--color-surface));
+    border-color: hsl(var(--color-border));
+    color: hsl(var(--color-foreground));
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+    border-color: hsl(var(--color-primary));
+    box-shadow: 0 0 0 4px hsl(var(--color-primary) / 0.1);
+}
+
+.dark input:disabled,
+.dark textarea:disabled,
+.dark select:disabled {
+    background-color: hsl(var(--color-surface-secondary));
+    color: hsl(var(--color-muted-foreground));
+}
+
+/* Dark mode for buttons */
+.dark .bg-white {
+    background-color: hsl(var(--color-surface));
+}
+
+.dark .hover\:bg-surface-secondary:hover {
+    background-color: hsl(var(--color-surface-secondary));
+}
+
+.dark .border-input {
+    border-color: hsl(var(--color-input));
+}
+
+.dark .focus\:ring-primary\/10:focus {
+    box-shadow: 0 0 0 4px hsl(var(--color-primary) / 0.2);
+}
+
 /* Premium Animations */
 @keyframes fade-in {
     from {

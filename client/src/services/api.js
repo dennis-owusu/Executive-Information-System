@@ -157,7 +157,7 @@ export async function register(userData) {
 
 // Order functions
 export async function createOrder(orderData) {
-  const { data } = await api.post('/createOrder', orderData);
+  const { data } = await api.post('/route/createOrder', orderData);
   return data;
 }
 

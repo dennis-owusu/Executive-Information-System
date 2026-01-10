@@ -48,7 +48,10 @@ export function CartProvider({ children }) {
 
     const getTotal = () => {
         return cart.reduce((sum, item) => {
-            const price = isNaN(Number(item.price)) ? 0 : Number(item.price) || 0;
+            // Handle both frontend (item.price) and backend (item.productPrice) field names
+            const price = isNaN(Number(item.price)) ? 
+                (isNaN(Number(item.productPrice)) ? 0 : Number(item.productPrice) || 0) : 
+                Number(item.price) || 0;
             const quantity = isNaN(Number(item.quantity)) ? 0 : Number(item.quantity) || 0;
             return sum + (price * quantity);
         }, 0);

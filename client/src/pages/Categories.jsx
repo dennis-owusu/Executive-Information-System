@@ -16,7 +16,11 @@ export default function Categories() {
   const fetchCategories = async () => {
     try {
       const data = await getAllCategories();
-      setCategories(data.categories || []);
+      console.log('Categories API response:', data);
+      // The API returns { allCategory: [...] }
+      const categoriesData = data.allCategory || data.categories || [];
+      console.log('Processed categories data:', categoriesData);
+      setCategories(categoriesData);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
     } finally {
@@ -68,6 +72,30 @@ export default function Categories() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Categories</h1>
+          <button
+            onClick={openModal}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus size={20} />
+            Add Category
+          </button>
+        </div>
+        <div className="text-center py-20">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Tag size={32} className="text-gray-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">No categories found</h3>
+          <p className="text-gray-500">Create your first category to get started.</p>
+        </div>
       </div>
     );
   }

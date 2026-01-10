@@ -7,7 +7,7 @@ export default function ProductDetail() {
       <div className="h-48 w-full rounded bg-neutral-200 sm:h-64 md:h-80" />
       <div className="space-y-4">
         <div className="text-2xl font-bold">Product Title</div>
-        <div className="text-neutral-600">$0.00</div>
+        <div className="text-neutral-600">₵0.00</div>
         <Button className="w-full sm:w-auto">Add to Cart</Button>
       </div>
     </div>

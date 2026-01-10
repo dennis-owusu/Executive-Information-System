@@ -1,12 +1,15 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, User, Menu, X, Home, Package, Receipt, ChevronDown } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useSearch } from '../contexts/SearchContext';
 
 export default function ShopNavbar() {
     const [menuOpen, setMenuOpen] = React.useState(false);
     const { getItemCount } = useCart();
+    const { searchTerm, setSearchTerm, clearSearch } = useSearch();
     const location = useLocation();
+    const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const isLoggedIn = !!localStorage.getItem('token');
     const isExecutive = user.role === 'admin' || user.role === 'executive';
@@ -47,8 +50,24 @@ export default function ShopNavbar() {
                             <input
                                 type="text"
                                 placeholder="Search products..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && searchTerm.trim()) {
+                                        // Navigate to products page with search
+                                        navigate(`/shop/products?search=${encodeURIComponent(searchTerm)}`);
+                                    }
+                                }}
                                 className="w-full pl-11 pr-4 py-2.5 text-sm bg-slate-100 border-2 border-transparent rounded-xl focus:outline-none focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all"
                             />
+                            {searchTerm && (
+                                <button
+                                    onClick={clearSearch}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -98,6 +117,36 @@ export default function ShopNavbar() {
                 {/* Mobile Menu */}
                 {menuOpen && (
                     <div className="md:hidden py-4 border-t border-slate-200 animate-fade-in">
+                        {/* Mobile Search */}
+                        <div className="px-4 pb-4">
+                            <div className="relative w-full group">
+                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-600 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Search products..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter' && searchTerm.trim()) {
+                                            navigate(`/shop/products?search=${encodeURIComponent(searchTerm)}`);
+                                            setMenuOpen(false);
+                                        }
+                                    }}
+                                    className="w-full pl-10 pr-8 py-2.5 text-sm bg-slate-100 border-2 border-transparent rounded-xl focus:outline-none focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all"
+                                />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => {
+                                            clearSearch();
+                                            setMenuOpen(false);
+                                        }}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                         <div className="space-y-1">
                             <MobileNavLink to="/shop" onClick={() => setMenuOpen(false)}>
                                 Home

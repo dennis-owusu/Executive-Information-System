@@ -11,10 +11,21 @@ export default function Customers() {
     useEffect(() => {
         const fetchCustomers = async () => {
             try {
-                const data = await getCustomers();
-                setCustomers(data);
+                const response = await getCustomers();
+                console.log('Customers API response:', response);
+                // Handle different response formats - the API returns { allUsers: [...], pagination: {...} }
+                const customerData = response.allUsers || response.data || response.customers || response || [];
+                
+                // Filter for customers with user role only
+                const userCustomers = Array.isArray(customerData) 
+                    ? customerData.filter(user => user.usersRole === 'user')
+                    : [];
+                
+                console.log('Filtered customers with user role:', userCustomers);
+                setCustomers(userCustomers);
             } catch (error) {
                 console.error("Failed to fetch customers:", error);
+                setCustomers([]);
             } finally {
                 setLoading(false);
             }
@@ -71,6 +82,14 @@ export default function Customers() {
                 <div className="flex justify-center py-20">
                     <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
                 </div>
+            ) : customers.length === 0 ? (
+                <div className="text-center py-20">
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <User size={32} className="text-purple-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">No customers found</h3>
+                    <p className="text-slate-500">Customers with user role will appear here.</p>
+                </div>
             ) : (
                 <>
                     {viewMode === 'list' ? (
@@ -113,7 +132,7 @@ export default function Customers() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                                    {customer.role.toUpperCase()}
+                                                    {customer.usersRole?.toUpperCase() || 'USER'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-500">
@@ -138,7 +157,7 @@ export default function Customers() {
                                             {(customer.firstName?.[0] || customer.email?.[0] || 'U').toUpperCase()}
                                         </div>
                                         <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-bold text-slate-600">
-                                            {customer.role.toUpperCase()}
+                                            {customer.usersRole?.toUpperCase() || 'USER'}
                                         </span>
                                     </div>
 

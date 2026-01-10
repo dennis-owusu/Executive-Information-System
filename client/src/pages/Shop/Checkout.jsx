@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../../contexts/CartContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { usePaystackPayment } from 'react-paystack';
-import { Mail, Phone, MapPin, CreditCard, Lock, CheckCircle, Truck, Shield, Package, ArrowLeft } from 'lucide-react';
+import { Mail, Phone, MapPin, Truck, Package, ArrowLeft, CheckCircle } from 'lucide-react';
 import ShopNavbar from '../../components/ShopNavbar';
-import { verifyPayment, createOrder } from '../../services/api';
+import { createOrder } from '../../services/api';
 
 function generateOrderReference() {
   return 'ORD-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
@@ -25,7 +24,6 @@ export default function CheckoutPage() {
     zip: '',
   });
   
-  const [step, setStep] = useState(1);
   const [processing, setProcessing] = useState(false);
   const [reference, setReference] = useState(() => generateOrderReference());
   const [loading, setLoading] = useState(false);
@@ -40,38 +38,22 @@ export default function CheckoutPage() {
   // Debug cart data
   useEffect(() => {
     console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Cart data:', cart);
+    console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Cart items with prices:', cart.map(item => ({
+      id: item._id,
+      name: item.name || item.productName,
+      price: item.price || item.productPrice,
+      quantity: item.quantity,
+      image: item.image || item.productImage || item.images?.[0]
+    })));
     console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Raw subtotal from getTotal():', getTotal());
     console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Processed subtotal:', subtotal);
+    console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Shipping:', shipping);
+    console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Tax:', tax);
     console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Total:', total);
-  }, [cart, subtotal, total]);
+  }, [cart, subtotal, total, shipping, tax]);
 
-  // Paystack configuration
-  const config = {
-    reference: reference,
-    email: formData.email,
-    amount: Math.round(total * 100), // Convert to kobo/cents
-    publicKey: 'pk_test_c45444fba0ed1a546015617807267ded4552be18',
-    currency: 'GHS',
-    channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money'],
-    metadata: {
-      custom_fields: [
-        { display_name: "Name", variable_name: "name", value: `${formData.firstName} ${formData.lastName}` },
-        { display_name: "Phone", variable_name: "phone", value: formData.phone },
-        { display_name: "Address", variable_name: "address", value: `${formData.address}, ${formData.city}` }
-      ]
-    }
-  };
-
-  // Initialize Paystack payment
-  const initializePayment = usePaystackPayment(config);
-
-  // Regenerate reference if it's invalid
-  useEffect(() => {
-    if (!reference || reference.length < 10) {
-      console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Regenerating invalid reference:', reference);
-      setReference(generateOrderReference());
-    }
-  }, [reference]);
+  // Order reference for tracking
+  const orderReference = reference;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -81,106 +63,87 @@ export default function CheckoutPage() {
     }));
   };
 
-  const handlePaymentSuccess = async (reference) => {
-    console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Payment success callback triggered', reference);
+  const handleOrderSubmit = async () => {
+    console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Order submission started');
+    setLoading(true);
+    
     try {
-      // First verify the payment with Paystack
-      const verificationResult = await verifyPayment(reference.reference);
-      console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Payment verification result', verificationResult);
-      
-      if (verificationResult.success) {
-        setLoading(true); // Show loading state while creating order
-        
-        // Create order with all the details
-        const orderData = {
-          reference: reference.reference,
-          items: cart.map(item => ({
-            productId: item._id,
-            name: item.name,
-            price: Number(item.price),
-            quantity: item.quantity,
-            image: item.images?.[0] || item.image
-          })),
-          shippingAddress: {
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            address: formData.address,
-            city: formData.city,
-            state: formData.state,
-            zip: formData.zip
-          },
-          paymentDetails: {
-            amount: total,
-            currency: 'GHS',
-            status: 'paid'
-          },
-          subtotal: subtotal,
-          shipping: shipping,
-          tax: tax,
-          total: total
-        };
+      // Create order directly without payment verification
+      const orderData = {
+        reference: orderReference,
+        products: cart.map(item => ({
+          product: item._id,
+          quantity: item.quantity,
+          price: Number(item.price || item.productPrice || 0)
+        })),
+        totalPrice: total,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        phoneNumber: formData.phone,
+        postalCode: formData.zip,
+        paymentMethod: 'cash_on_delivery', // Since we removed Paystack
+        userInfo: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phoneNumber: formData.phone
+        },
+        orderNumber: orderReference
+      };
 
-        console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Creating order with data:', orderData);
-        
-        // Create the order
-        const orderResult = await createOrder(orderData);
-        console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Order creation result:', orderResult);
-        
-        setLoading(false); // Hide loading state
-        
-        // Clear cart on successful order creation
-        clearCart();
-        
-        // Navigate to success page with order details
-        navigate('/shop/order-success', { 
-          state: { 
-            reference: reference.reference,
-            orderId: orderResult.orderId || orderResult._id 
-          } 
-        });
-      } else {
-        alert('Payment verification failed. Please contact support.');
-        setProcessing(false);
-      }
+      console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Creating order with data:', orderData);
+      
+      // Create the order
+      const orderResult = await createOrder(orderData);
+      console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Order creation result:', orderResult);
+      
+      setLoading(false);
+      
+      // Clear cart on successful order creation
+      clearCart();
+      
+      // Navigate to success page with order details
+      navigate('/shop/order-success', { 
+        state: { 
+          reference: orderReference,
+          orderId: orderResult.orderId || orderResult._id 
+        } 
+      });
     } catch (error) {
-      console.error('[CHECKOUT][ERROR]', new Date().toISOString(), 'Payment/order processing error:', error);
-      alert('Payment processing failed. Please contact support.');
+      console.error('[CHECKOUT][ERROR]', new Date().toISOString(), 'Order creation error:', error);
+      let errorMessage = 'Order creation failed. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`Order creation failed: ${errorMessage}`);
+      setLoading(false);
       setProcessing(false);
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (step === 1) {
-      // Validate shipping fields before proceeding to payment
-      if (!formData.firstName || !formData.lastName || !formData.email || !formData.address || !formData.city) {
-        alert('Please fill in all required shipping fields');
-        return;
-      }
-      setStep(2);
-    } else {
-      // Validate required fields
-      if (!formData.email || !formData.firstName || !formData.lastName) {
-        alert('Please fill in all required fields');
-        return;
-      }
-      
-      // Validate total amount
-      if (total <= 0) {
-        alert('Invalid order total');
-        return;
-      }
-      
-      setProcessing(true);
-      
-      // Initialize Paystack payment
-      initializePayment(handlePaymentSuccess, () => {
-        console.log('[CHECKOUT][DEBUG]', new Date().toISOString(), 'Payment closed');
-        setProcessing(false);
-      });
+    
+    // Validate required fields
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.address || !formData.city) {
+      alert('Please fill in all required shipping fields');
+      return;
     }
+    
+    // Validate total amount
+    if (total <= 0) {
+      alert('Invalid order total');
+      return;
+    }
+    
+    setProcessing(true);
+    
+    // Create order directly without payment
+    handleOrderSubmit();
   };
 
   if (cart.length === 0) {
@@ -218,18 +181,11 @@ export default function CheckoutPage() {
           
           {/* Progress indicator */}
           <div className="flex items-center mt-6">
-            <div className={`flex items-center ${step === 1 ? 'text-blue-600' : 'text-gray-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
+            <div className="flex items-center text-blue-600">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-600 text-white">
                 1
               </div>
-              <span className="ml-2 font-medium">Shipping</span>
-            </div>
-            <div className="flex-1 h-px bg-gray-300 mx-4" />
-            <div className={`flex items-center ${step === 2 ? 'text-blue-600' : 'text-gray-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
-                2
-              </div>
-              <span className="ml-2 font-medium">Payment</span>
+              <span className="ml-2 font-medium">Shipping & Order</span>
             </div>
           </div>
         </div>
@@ -238,123 +194,104 @@ export default function CheckoutPage() {
           {/* Left Column - Form */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <form onSubmit={handleSubmit}>
-              {step === 1 ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                     <input
                       type="text"
-                      name="address"
-                      value={formData.address}
+                      name="firstName"
+                      value={formData.firstName}
                       onChange={handleInputChange}
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                      <input
-                        type="text"
-                        name="state"
-                        value={formData.state}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
-                      <input
-                        type="text"
-                        name="zip"
-                        value={formData.zip}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-medium text-gray-900 mb-2">Payment Method</h3>
-                    <div className="flex items-center space-x-3">
-                      <CreditCard className="w-5 h-5 text-blue-600" />
-                      <span className="text-gray-700">Pay with Paystack</span>
-                    </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
-                  
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <Shield className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm text-blue-800">Your payment information is secure and encrypted</span>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                    <input
+                      type="text"
+                      name="state"
+                      value={formData.state}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
+                    <input
+                      type="text"
+                      name="zip"
+                      value={formData.zip}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
                 </div>
-              )}
+              </div>
               
               <div className="mt-6">
                 <button
@@ -368,7 +305,7 @@ export default function CheckoutPage() {
                       {loading ? 'Creating Order...' : 'Processing...'}
                     </span>
                   ) : (
-                    step === 1 ? 'Continue to Payment' : 'Complete Order'
+                    'Complete Order'
                   )}
                 </button>
               </div>
@@ -381,21 +318,26 @@ export default function CheckoutPage() {
             
             <div className="space-y-4 mb-6">
               {cart.map((item) => {
-                const itemPrice = isNaN(Number(item.price)) ? 0 : Number(item.price) || 0;
+                // Handle both frontend and backend field naming conventions
+                const itemPrice = isNaN(Number(item.price)) ? 
+                  (isNaN(Number(item.productPrice)) ? 0 : Number(item.productPrice) || 0) : 
+                  Number(item.price) || 0;
                 const itemTotal = itemPrice * (item.quantity || 0);
+                const itemName = item.name || item.productName || 'Unknown Product';
+                const itemImage = item.images?.[0] || item.image || item.productImage || '/placeholder-product.jpg';
                 
                 return (
                   <div key={item._id} className="flex items-center space-x-4">
                     <img
-                      src={item.images?.[0] || item.image || '/placeholder-product.jpg'}
-                      alt={item.name}
+                      src={itemImage.startsWith('http') ? itemImage : `http://localhost:4000${itemImage}`}
+                      alt={itemName}
                       className="w-16 h-16 object-cover rounded-lg"
                       onError={(e) => {
                         e.target.src = '/placeholder-product.jpg';
                       }}
                     />
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{item.name}</h3>
+                      <h3 className="font-medium text-gray-900">{itemName}</h3>
                       <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                       <p className="text-sm text-gray-600">₵{itemPrice.toFixed(2)} each</p>
                     </div>

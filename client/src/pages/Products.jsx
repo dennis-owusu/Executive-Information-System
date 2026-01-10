@@ -244,7 +244,7 @@ export default function ProductsPage() {
                 <StatCard 
                     icon={DollarSign} 
                     label="Total Value" 
-                    value={`$${stats.totalValue.toLocaleString()}`} 
+                    value={`₵${stats.totalValue.toLocaleString()}`} 
                     change="+23%" 
                     color="from-orange-500 to-amber-500"
                     delay={350}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getDashboardStats, getDashboardChartData } from '../services/api';
+import { getDashboardStats, getDashboardChartData, getCategories } from '../services/api';
 import {
     AreaChart,
     Area,
@@ -36,18 +36,36 @@ import { cn } from '../lib/utils';
 export default function Dashboard() {
     const [stats, setStats] = useState(null);
     const [chartData, setChartData] = useState(null);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState('week');
 
-    useEffect(() => {
+            useEffect(() => {
         const fetchData = async () => {
             try {
-                const [statsRes, chartRes] = await Promise.all([
+                const [statsRes, chartRes, categoriesRes] = await Promise.all([
                     getDashboardStats(),
-                    getDashboardChartData()
+                    getDashboardChartData(),
+                    getCategories()
                 ]);
+                console.log('Dashboard stats response:', statsRes);
+                console.log('Dashboard recentOrders:', statsRes?.recentOrders);
+                if (statsRes?.recentOrders && statsRes.recentOrders.length > 0) {
+                    console.log('First recentOrder:', JSON.stringify(statsRes.recentOrders[0], null, 2));
+                    console.log('First recentOrder customer:', statsRes.recentOrders[0].customer);
+                    console.log('First recentOrder customer type:', typeof statsRes.recentOrders[0].customer);
+                    console.log('First recentOrder totalAmount:', statsRes.recentOrders[0].totalAmount);
+                    console.log('First recentOrder totalAmount type:', typeof statsRes.recentOrders[0].totalAmount);
+                    console.log('First recentOrder status:', statsRes.recentOrders[0].status);
+                    console.log('First recentOrder status type:', typeof statsRes.recentOrders[0].status);
+                }
                 setStats(statsRes);
                 setChartData(chartRes);
+                // The API returns { allCategory: [...] }
+                console.log('Dashboard categories response:', categoriesRes);
+                const categoriesData = categoriesRes.allCategory || categoriesRes.categories || categoriesRes || [];
+                console.log('Dashboard processed categories:', categoriesData);
+                setCategories(categoriesData);
             } catch (error) {
                 console.error('Failed to fetch dashboard data:', error);
             } finally {
@@ -143,7 +161,7 @@ export default function Dashboard() {
                                             tick={{ fontSize: 12 }}
                                             tickLine={false}
                                             axisLine={false}
-                                            tickFormatter={(v) => `$${v}`}
+                                            tickFormatter={(v) => `₵${v}`}
                                         />
                                         <Tooltip
                                             contentStyle={{
@@ -176,25 +194,34 @@ export default function Dashboard() {
                     </div>
                     <div className="p-6">
                         <div className="space-y-4">
-                            {[
-                                { name: 'Electronics', value: 45, color: '#FF6A00' },
-                                { name: 'Fashion', value: 30, color: '#1890FF' },
-                                { name: 'Home & Garden', value: 15, color: '#52C41A' },
-                                { name: 'Sports', value: 10, color: '#FAAD14' }
-                            ].map((item, i) => (
-                                <div key={i}>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm font-medium text-foreground">{item.name}</span>
-                                        <span className="text-sm text-muted-foreground">{item.value}%</span>
-                                    </div>
-                                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full rounded-full transition-all duration-500"
-                                            style={{ width: `${item.value}%`, backgroundColor: item.color }}
-                                        />
-                                    </div>
+                            {categories.length > 0 ? (
+                                categories.slice(0, 4).map((category, i) => {
+                                    const colors = ['#FF6A00', '#1890FF', '#52C41A', '#FAAD14'];
+                                    const totalProducts = categories.reduce((sum, cat) => sum + (cat.productCount || 0), 0);
+                                    const percentage = totalProducts > 0 ? Math.round((category.productCount || 0) / totalProducts * 100) : 0;
+                                    
+                                    return (
+                                        <div key={category._id || i}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm font-medium text-foreground">
+                                                    {category.categoryName || 'Unknown Category'}
+                                                </span>
+                                                <span className="text-sm text-muted-foreground">{percentage}%</span>
+                                            </div>
+                                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full transition-all duration-500"
+                                                    style={{ width: `${percentage}%`, backgroundColor: colors[i % colors.length] }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="text-center text-muted-foreground py-8">
+                                    No categories available
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>
@@ -222,19 +249,43 @@ export default function Dashboard() {
                                             <ShoppingBag size={20} className="text-primary" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-foreground">{order.customer}</p>
-                                            <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                            <p className="text-sm font-medium text-foreground">
+                                                {(() => {
+                                                    const customer = order.customer;
+                                                    if (typeof customer === 'string') return customer;
+                                                    if (typeof customer === 'object' && customer && typeof customer.name === 'string') return customer.name;
+                                                    return 'Unknown Customer';
+                                                })()}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {(() => {
+                                                    const date = order.createdAt;
+                                                    if (date) return new Date(date).toLocaleDateString();
+                                                    return 'N/A';
+                                                })()}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-semibold text-foreground">${order.totalAmount}</p>
+                                        <p className="text-sm font-semibold text-foreground">
+                                            ${(() => {
+                                                const amount = order.totalAmount;
+                                                if (typeof amount === 'number') return amount.toLocaleString();
+                                                if (typeof amount === 'string') return amount;
+                                                return '0';
+                                            })()}
+                                        </p>
                                         <span className={cn(
                                             "inline-block text-[10px] px-2 py-0.5 rounded-full font-medium",
                                             order.status === 'completed' && "bg-success/10 text-success",
                                             order.status === 'pending' && "bg-warning/10 text-warning",
                                             order.status === 'cancelled' && "bg-error/10 text-error"
                                         )}>
-                                            {order.status}
+                                            {(() => {
+                                                const status = order.status;
+                                                if (typeof status === 'string') return status;
+                                                return 'pending';
+                                            })()}
                                         </span>
                                     </div>
                                 </div>
@@ -269,7 +320,7 @@ export default function Dashboard() {
                         <AlertItem
                             type="success"
                             title="Revenue Milestone"
-                            message="You've reached $10,000 in sales this month!"
+                            message="You've reached ₵10,000 in sales this month!"
                             time="1 day ago"
                         />
                     </div>
@@ -296,7 +347,7 @@ function KPICard({ metric, index }) {
                 <div className="flex-1">
                     <p className="text-sm text-muted-foreground font-medium">{metric.label}</p>
                     <p className="text-2xl font-semibold text-foreground mt-2">
-                        {metric.type === 'currency' ? `$${metric.value.toLocaleString()}` : metric.value.toLocaleString()}
+                        {metric.type === 'currency' ? `₵${metric.value.toLocaleString()}` : metric.value.toLocaleString()}
                     </p>
                     {metric.trend && (
                         <div className="flex items-center gap-1 mt-3">

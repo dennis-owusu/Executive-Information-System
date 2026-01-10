@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useCart } from '../../contexts/CartContext';
+import { useSearch } from '../../contexts/SearchContext';
 import { ShoppingCart, Star, Heart, Filter, Grid, List, SlidersHorizontal, Package, X } from 'lucide-react';
 import ShopNavbar from '../../components/ShopNavbar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getProducts } from '../../services/api';
 
 function hashString(str) {
@@ -30,14 +31,17 @@ export default function ShopProductsPage() {
     const [sortBy, setSortBy] = useState('featured');
     const [viewMode, setViewMode] = useState('grid');
     const { addToCart } = useCart();
+    const { searchTerm, setSearchTerm, performSearch } = useSearch();
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         const fetchProducts = async () => {
             try {
                 const data = await getProducts({ limit: 50 });
                 console.log('[ShopProducts] API Response:', data); // Debug log
-                setProducts(data.products || data.items || []);
+                const allProducts = data.products || data.items || [];
+                setProducts(allProducts);
             } catch (error) {
                 console.error('Failed to fetch products:', error);
             } finally {
@@ -47,11 +51,26 @@ export default function ShopProductsPage() {
         fetchProducts();
     }, []);
 
+    // Handle URL search parameters
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        const searchParam = urlParams.get('search');
+        if (searchParam) {
+            // Set the search term from URL
+            setSearchTerm(searchParam);
+        }
+    }, [location.search]);
+
     const categories = ['all', ...new Set(products.map(p => p.category?.categoryName || p.category || 'Uncategorized').filter(Boolean))];
-    const filteredProducts = filter === 'all' ? products : products.filter(p => {
+    
+    // Apply both category filter and search filter
+    const categoryFilteredProducts = filter === 'all' ? products : products.filter(p => {
       const productCategory = p.category?.categoryName || p.category || 'Uncategorized';
       return productCategory === filter;
     });
+    
+    // Apply search filter using performSearch from SearchContext
+    const filteredProducts = performSearch(categoryFilteredProducts, searchTerm);
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -120,10 +139,32 @@ export default function ShopProductsPage() {
                     </div>
                 </div>
 
+                {/* Search Results Header */}
+                {searchTerm && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-purple-900">Search Results</h3>
+                                <p className="text-purple-700">Showing results for "{searchTerm}"</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    navigate('/shop/products');
+                                }}
+                                className="px-4 py-2 bg-white text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
+                            >
+                                Clear Search
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Results Info */}
                 <div className="flex items-center justify-between mb-6">
                     <p className="text-slate-600">
                         Showing <span className="font-bold text-slate-900">{filteredProducts.length}</span> products
+                        {searchTerm && <span className="text-purple-600 font-medium"> matching "{searchTerm}"</span>}
                     </p>
                 </div>
 
@@ -132,6 +173,32 @@ export default function ShopProductsPage() {
                     <div className="flex flex-col items-center justify-center py-32">
                         <div className="w-20 h-20 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
                         <p className="text-slate-500 font-medium">Loading products...</p>
+                    </div>
+                ) : filteredProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-32 text-center">
+                        <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                            <svg className="w-12 h-12 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                            {searchTerm ? `No products found for "${searchTerm}"` : 'No products found'}
+                        </h3>
+                        <p className="text-slate-600 mb-6">
+                            {searchTerm ? 'Try adjusting your search terms or browse all products' : 'No products available in this category'}
+                        </p>
+                        <button
+                            onClick={() => {
+                                setFilter('all');
+                                if (searchTerm) {
+                                    setSearchTerm('');
+                                    navigate('/shop/products');
+                                }
+                            }}
+                            className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-medium"
+                        >
+                            {searchTerm ? 'Clear Search' : 'Show All Products'}
+                        </button>
                     </div>
                 ) : (
                     <div className={viewMode === 'grid'

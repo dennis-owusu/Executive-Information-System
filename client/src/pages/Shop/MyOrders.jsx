@@ -13,6 +13,14 @@ export default function MyOrdersPage() {
         const fetchOrders = async () => {
             try {
                 const data = await getMyOrders();
+                console.log('MyOrders data:', data);
+                if (data && data.length > 0) {
+                    console.log('First order structure:', JSON.stringify(data[0], null, 2));
+                    console.log('First order userInfo:', data[0].userInfo);
+                    console.log('First order userInfo type:', typeof data[0].userInfo);
+                    console.log('First order userInfo.name:', data[0].userInfo?.name);
+                    console.log('First order userInfo.name type:', typeof data[0].userInfo?.name);
+                }
                 setOrders(data);
             } catch (error) {
                 console.error("Failed to fetch orders:", error);
@@ -161,7 +169,14 @@ function OrderCard({ order, statusConfig, index }) {
                     </div>
                     <div className="mt-4 pt-4 border-t border-slate-200">
                         <h4 className="font-bold text-slate-900 mb-2">Shipping To:</h4>
-                        <p className="text-sm text-slate-600">{order.userInfo?.name}</p>
+                        <p className="text-sm text-slate-600">
+                            {(() => {
+                                const name = order.userInfo?.name;
+                                if (typeof name === 'string') return name;
+                                if (typeof name === 'object' && name && typeof name.name === 'string') return name.name;
+                                return 'Guest Customer';
+                            })()}
+                        </p>
                         <p className="text-sm text-slate-600">{order.address}</p>
                         <p className="text-sm text-slate-600">{order.city}{order.state ? `, ${order.state}` : ''}{order.postalCode ? ` ${order.postalCode}` : ''}</p>
                     </div>

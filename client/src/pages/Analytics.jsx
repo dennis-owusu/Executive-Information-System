@@ -11,7 +11,8 @@ import {
     Upload,
     Download,
     FileText,
-    CheckCircle2
+    CheckCircle2,
+    Package
 } from 'lucide-react';
 import {
     AreaChart,
@@ -38,6 +39,8 @@ export default function AnalyticsPage() {
     const [customersData, setCustomersData] = useState(null);
     const [ordersData, setOrdersData] = useState(null);
     const [categoriesData, setCategoriesData] = useState(null);
+    const [topProducts, setTopProducts] = useState([]);
+    const [loadingTopProducts, setLoadingTopProducts] = useState(false);
     const [aiInsights, setAiInsights] = useState('');
     const [loadingInsights, setLoadingInsights] = useState(false);
     const fileInputRef = useRef(null);
@@ -53,7 +56,8 @@ export default function AnalyticsPage() {
                     getProducts, 
                     getCustomers, 
                     getOrders,
-                    getCategories 
+                    getCategories,
+                    getAnalytics 
                 } = await import('../services/api');
 
                 // Fetch dashboard stats (includes operations data)
@@ -151,6 +155,27 @@ export default function AnalyticsPage() {
                 } catch (error) {
                     console.log('Categories data not available:', error.message);
                     setCategoriesData({ totalCategories: 0, activeCategories: 0, featuredCategories: 0 });
+                }
+
+                // Fetch analytics data including top selling products
+                try {
+                    console.log('Fetching analytics data with top selling products...');
+                    setLoadingTopProducts(true);
+                    const analyticsResponse = await getAnalytics({ period: 'monthly' });
+                    console.log('Analytics response:', analyticsResponse);
+                    
+                    if (analyticsResponse.success && analyticsResponse.data && analyticsResponse.data.topProducts) {
+                        console.log('Top products data:', analyticsResponse.data.topProducts);
+                        setTopProducts(analyticsResponse.data.topProducts);
+                    } else {
+                        console.log('No top products data found in analytics response');
+                        setTopProducts([]);
+                    }
+                } catch (error) {
+                    console.log('Analytics data not available:', error.message);
+                    setTopProducts([]);
+                } finally {
+                    setLoadingTopProducts(false);
                 }
                 
                 console.log('Comprehensive analytics data loaded successfully');
@@ -251,9 +276,9 @@ export default function AnalyticsPage() {
             const question = `As an AI business analyst, provide a focused business executive summary for our e-commerce system. Analyze the following real system data and provide strategic insights:
 
 Business Performance Metrics:
-- Total Revenue: $${totalRevenue.toLocaleString()}
+- Total Revenue: ₵${totalRevenue.toLocaleString()}
 - Total Orders: ${totalOrders.toLocaleString()}
-- Average Order Value: $${avgOrderValue}
+- Average Order Value: ₵${avgOrderValue}
 - Customer Base: ${systemData.customers.totalCustomers.toLocaleString()} total, ${systemData.customers.activeCustomers} active
 - Product Portfolio: ${systemData.products.totalProducts} products across ${systemData.categories.totalCategories} categories
 - Order Fulfillment: ${orderCompletionRate}% completion rate, ${systemData.orders.pendingOrders} pending
@@ -286,8 +311,8 @@ Format as clean business report with executive summary, key findings, and priori
 Current system performance shows ${systemData.products.totalProducts} active products serving ${systemData.customers.totalCustomers} customers with ${systemData.orders.totalOrders} total orders processed.
 
 ### Key Financial Metrics
-- Total Revenue: $${totalRevenue.toLocaleString()}
-- Average Order Value: $${avgOrderValue}
+- Total Revenue: ₵${totalRevenue.toLocaleString()}
+- Average Order Value: ₵${avgOrderValue}
 - Order Completion Rate: ${orderCompletionRate}%
 
 ### Operational Health
@@ -323,7 +348,7 @@ Monitor daily metrics and adjust strategies based on real-time performance data.
 - Categories Data: ${categoriesData ? '✅ Available' : '❌ Missing'}
 
 **Current System Metrics:**
-- Total Revenue: $${(salesSummary?.total?.total || 0).toLocaleString()}
+- Total Revenue: ₵${(salesSummary?.total?.total || 0).toLocaleString()}
 - Total Orders: ${ordersData?.totalOrders || 0}
 - Total Products: ${productsData?.totalProducts || 0}
 - Total Customers: ${customersData?.totalCustomers || 0}
@@ -356,13 +381,6 @@ ${(ordersData?.totalOrders || 0) === 0 ? '• Implement marketing campaigns to d
         { name: 'Office', value: 25, color: '#0EA5E9' },     
         { name: 'Accessories', value: 20, color: '#10B981' }, 
         { name: 'Others', value: 10, color: '#F59E0B' }      
-    ];
-
-    const topProducts = [
-        { name: 'Wireless Headphones', sales: 234, revenue: 70200 },
-        { name: 'Smart Watch', sales: 189, revenue: 85050 },
-        { name: 'Laptop Stand', sales: 156, revenue: 12480 },
-        { name: 'Mechanical Keyboard', sales: 123, revenue: 19677 },
     ];
 
     return (
@@ -421,7 +439,7 @@ ${(ordersData?.totalOrders || 0) === 0 ? '• Implement marketing campaigns to d
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KPICard
                     label="Total Revenue"
-                    value={`$${salesSummary?.total?.total?.toLocaleString() || '0'}`}
+                    value={`₵${salesSummary?.total?.total?.toLocaleString() || '0'}`}
                     change="+0%"
                     positive={true}
                     icon={DollarSign}
@@ -487,7 +505,7 @@ ${(ordersData?.totalOrders || 0) === 0 ? '• Implement marketing campaigns to d
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                                 <XAxis dataKey="month" stroke="#94A3B8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#94A3B8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000}k`} />
+                                <YAxis stroke="#94A3B8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(value) => `₵${value/1000}k`} />
                                 <Tooltip
                                     contentStyle={{
                                         backgroundColor: '#1E293B',
@@ -563,64 +581,63 @@ ${(ordersData?.totalOrders || 0) === 0 ? '• Implement marketing campaigns to d
                 <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed">
                     {aiInsights ? (
                         <div className="space-y-6">
-                        <ReactMarkdown
-  components={{
-    h1: ({ children }) => (
-      <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-6 mt-8">
-        {children}
-      </h1>
-    ),
-    h2: ({ children }) => (
-      <h2 className="text-2xl font-semibold tracking-tight text-gray-800 mb-4 mt-8 border-b border-gray-100 pb-2">
-        {children}
-      </h2>
-    ),
-    h3: ({ children }) => (
-      <h3 className="text-xl font-medium text-gray-800 mb-2 mt-6">
-        {children}
-      </h3>
-    ),
-    ul: ({ children }) => (
-      <ul className="list-disc pl-5 space-y-2 mb-4 text-gray-600 marker:text-gray-400">
-        {children}
-      </ul>
-    ),
-    ol: ({ children }) => (
-      <ol className="list-decimal pl-5 space-y-2 mb-4 text-gray-600 marker:text-gray-500">
-        {children}
-      </ol>
-    ),
-    p: ({ children }) => (
-      <p className="text-base leading-7 text-gray-600 mb-4">
-        {children}
-      </p>
-    ),
-    strong: ({ children }) => (
-      <strong className="font-semibold text-gray-900">
-        {children}
-      </strong>
-    ),
-    em: ({ children }) => (
-      <em className="italic text-gray-800">
-        {children}
-      </em>
-    ),
-    blockquote: ({ children }) => (
-      <blockquote className="border-l-4 border-gray-200 pl-4 my-4 italic text-gray-700">
-        {children}
-      </blockquote>
-    ),
-    code: ({ children }) => (
-      <code className="bg-gray-100 text-pink-600 px-1.5 py-0.5 rounded text-sm font-mono border border-gray-200">
-        {children}
-      </code>
-    ),
-    hr: () => <hr className="my-8 border-gray-200" />,
-  }}
->
-  {aiInsights}
-</ReactMarkdown>
-
+                            <ReactMarkdown
+                                components={{
+                                    h1: ({ children }) => (
+                                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-6 mt-8">
+                                            {children}
+                                        </h1>
+                                    ),
+                                    h2: ({ children }) => (
+                                        <h2 className="text-2xl font-semibold tracking-tight text-gray-800 mb-4 mt-8 border-b border-gray-100 pb-2">
+                                            {children}
+                                        </h2>
+                                    ),
+                                    h3: ({ children }) => (
+                                        <h3 className="text-xl font-medium text-gray-800 mb-2 mt-6">
+                                            {children}
+                                        </h3>
+                                    ),
+                                    ul: ({ children }) => (
+                                        <ul className="list-disc pl-5 space-y-2 mb-4 text-gray-600 marker:text-gray-400">
+                                            {children}
+                                        </ul>
+                                    ),
+                                    ol: ({ children }) => (
+                                        <ol className="list-decimal pl-5 space-y-2 mb-4 text-gray-600 marker:text-gray-500">
+                                            {children}
+                                        </ol>
+                                    ),
+                                    p: ({ children }) => (
+                                        <p className="text-base leading-7 text-gray-600 mb-4">
+                                            {children}
+                                        </p>
+                                    ),
+                                    strong: ({ children }) => (
+                                        <strong className="font-semibold text-gray-900">
+                                            {children}
+                                        </strong>
+                                    ),
+                                    em: ({ children }) => (
+                                        <em className="italic text-gray-800">
+                                            {children}
+                                        </em>
+                                    ),
+                                    blockquote: ({ children }) => (
+                                        <blockquote className="border-l-4 border-gray-200 pl-4 my-4 italic text-gray-700">
+                                            {children}
+                                        </blockquote>
+                                    ),
+                                    code: ({ children }) => (
+                                        <code className="bg-gray-100 text-pink-600 px-1.5 py-0.5 rounded text-sm font-mono border border-gray-200">
+                                            {children}
+                                        </code>
+                                    ),
+                                    hr: () => <hr className="my-8 border-gray-200" />,
+                                }}
+                            >
+                                {aiInsights}
+                            </ReactMarkdown>
                         </div>
                     ) : (
                         <p className="text-slate-500">Click "Refresh Insights" to generate AI review.</p>
@@ -638,28 +655,43 @@ ${(ordersData?.totalOrders || 0) === 0 ? '• Implement marketing campaigns to d
                     <button className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View All</button>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
-                    {topProducts.map((product, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-indigo-50/50 border border-transparent hover:border-indigo-100 transition-all group">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md ${
-                                    i === 0 ? 'bg-amber-400' : i === 1 ? 'bg-slate-400' : 'bg-orange-400'
-                                }`}>
-                                    {i + 1}
-                                </div>
-                                <div>
-                                    <p className="font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">{product.productName || product.name}</p>
-                                    <p className="text-sm text-slate-500">{product.sales} units sold</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-lg font-bold text-slate-900">${product.revenue.toLocaleString()}</p>
-                                <div className="flex items-center justify-end gap-1 text-xs font-medium text-emerald-600">
-                                    <TrendingUp size={14} />
-                                    <span>High Demand</span>
-                                </div>
+                    {loadingTopProducts ? (
+                        <div className="flex items-center justify-center py-8">
+                            <div className="flex items-center gap-3 text-slate-500">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                                <span>Loading top products...</span>
                             </div>
                         </div>
-                    ))}
+                    ) : topProducts.length === 0 ? (
+                        <div className="text-center py-8 text-slate-500">
+                            <Package className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                            <p>No top selling products found</p>
+                            <p className="text-sm mt-1">Sales data will appear here once orders are processed</p>
+                        </div>
+                    ) : (
+                        topProducts.map((product, i) => (
+                            <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-indigo-50/50 border border-transparent hover:border-indigo-100 transition-all group">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md ${
+                                        i === 0 ? 'bg-amber-400' : i === 1 ? 'bg-slate-400' : 'bg-orange-400'
+                                    }`}>
+                                        {i + 1}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">{product.name}</p>
+                                        <p className="text-sm text-slate-500">{product.units} units sold</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-lg font-bold text-slate-900">₵${product.revenue.toLocaleString()}</p>
+                                    <div className="flex items-center justify-end gap-1 text-xs font-medium text-emerald-600">
+                                        <TrendingUp size={14} />
+                                        <span>High Demand</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>
@@ -682,7 +714,7 @@ function KPICard({ label, value, change, positive, icon: Icon, colorScheme, dela
         blue: "bg-white text-sky-600",
         emerald: "bg-white text-emerald-600",
         amber: "bg-white text-amber-600",
-    }
+    };
 
     return (
         <div

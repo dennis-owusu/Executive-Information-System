@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     ShoppingBag,
     Search,
@@ -51,6 +51,17 @@ export default function OrdersPage() {
             
             console.log('Orders API response:', response);
             
+            // Log the first few orders to debug data structure
+            if (response.orders && response.orders.length > 0) {
+                console.log('First order structure:', JSON.stringify(response.orders[0], null, 2));
+                console.log('First order userInfo:', response.orders[0].userInfo);
+                console.log('First order userInfo type:', typeof response.orders[0].userInfo);
+                console.log('First order userInfo.name:', response.orders[0].userInfo?.name);
+                console.log('First order userInfo.name type:', typeof response.orders[0].userInfo?.name);
+                console.log('First order status:', response.orders[0].status);
+                console.log('First order totalPrice:', response.orders[0].totalPrice);
+            }
+            
             // Handle different response formats
             if (response.orders) {
                 setOrders(response.orders);
@@ -70,19 +81,55 @@ export default function OrdersPage() {
         }
     };
 
+    // Calculate filtered orders based on search and status
+    const filteredOrders = useMemo(() => {
+        let filtered = orders;
+        
+        // Filter by status
+        if (statusFilter !== 'all') {
+            filtered = filtered.filter(order => order.status === statusFilter);
+        }
+        
+        // Filter by search term
+        if (searchTerm.trim()) {
+            const searchLower = searchTerm.toLowerCase();
+            filtered = filtered.filter(order => {
+                const orderNumber = (order.orderNumber || order._id || '').toString().toLowerCase();
+                
+                // Handle userInfo.name which might be an object {name: "string"} or a string
+                let customerName = '';
+                const name = order.userInfo?.name;
+                if (typeof name === 'string') {
+                    customerName = name.toLowerCase();
+                } else if (typeof name === 'object' && name && typeof name.name === 'string') {
+                    customerName = name.name.toLowerCase();
+                }
+                
+                const orderId = (order._id || '').toLowerCase();
+                return orderNumber.includes(searchLower) || 
+                       customerName.includes(searchLower) || 
+                       orderId.includes(searchLower);
+            });
+        }
+        
+        return filtered;
+    }, [orders, statusFilter, searchTerm]);
+
     // Calculate stats from real orders data
     const stats = [
         { label: 'Total Orders', value: orders.length, icon: ShoppingBag, color: 'primary', trend: '+12%' },
         { label: 'Completed', value: orders.filter(o => o.status === 'delivered').length, icon: CheckCircle2, color: 'success', trend: '+8%' },
-        { label: 'Pending', value: orders.filter(o => o.status === 'pending').length, icon: Clock, color: 'warning', trend: '+3' },
-        { label: 'Total Revenue', value: `$${orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0).toLocaleString()}`, icon: DollarSign, color: 'accent', trend: '+15%' },
+        { label: 'Pending', value: orders.filter(o => o.status === 'pending').length, icon: Clock, color: 'warning', trend: '+3%' },
+        { label: 'Total Revenue', value: orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0).toLocaleString(), icon: DollarSign, color: 'accent', trend: '+15%' },
     ];
 
     const statusColors = {
         completed: 'bg-success/10 text-success',
+        delivered: 'bg-success/10 text-success',
         pending: 'bg-warning/10 text-warning',
         processing: 'bg-accent/10 text-accent',
-        cancelled: 'bg-error/10 text-error'
+        cancelled: 'bg-error/10 text-error',
+        default: 'bg-slate-100 text-slate-700'
     };
 
     return (
@@ -194,7 +241,7 @@ export default function OrdersPage() {
             )}
 
             {/* Orders Table - Only show if we have orders */}
-            {!loading && !error && orders.length > 0 && (
+            {!loading && !error && filteredOrders.length > 0 && (
                 <div className="bg-white rounded-2xl border border-border shadow-alibaba overflow-hidden animate-slide-up animation-delay-300">
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -210,39 +257,49 @@ export default function OrdersPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-divider">
-                                {orders.map((order, i) => (
+                                {filteredOrders.map((order, i) => (
                                     <tr key={order._id} className="group hover:bg-surface-secondary transition-all animate-scale-in" style={{ animationDelay: `${i * 30}ms` }}>
                                         <td className="px-6 py-4">
-                                            <span className="text-sm font-mono font-semibold text-primary">{order.orderNumber}</span>
+                                            <span className="text-sm font-mono font-semibold text-primary">{typeof order.orderNumber === 'string' || typeof order.orderNumber === 'number' ? order.orderNumber : order._id || 'N/A'}</span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm">
-                                                    {(order.userInfo?.name || 'Unknown')[0]}
+                                                    {(() => {
+                                                        const name = order.userInfo?.name;
+                                                        if (typeof name === 'string') return name[0];
+                                                        if (typeof name === 'object' && name && typeof name.name === 'string') return name.name[0];
+                                                        return 'U';
+                                                    })()}
                                                 </div>
                                                 <span className="text-sm font-medium text-foreground">
-                                                    {order.userInfo?.name || 'Guest Customer'}
+                                                    {(() => {
+                                                        const name = order.userInfo?.name;
+                                                        if (typeof name === 'string') return name;
+                                                        if (typeof name === 'object' && name && typeof name.name === 'string') return name.name;
+                                                        return 'Guest Customer';
+                                                    })()}
                                                 </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-sm text-muted-foreground">
-                                                {new Date(order.createdAt).toLocaleDateString()}
+                                                {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-sm font-medium text-foreground">
-                                                {order.products?.length || 0} items
+                                                {Array.isArray(order.products) ? order.products.length : 0} items
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-base font-bold text-primary">
-                                                ${(order.totalPrice || 0).toLocaleString()}
+                                                ₵${typeof order.totalPrice === 'number' ? order.totalPrice.toLocaleString() : '0'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full capitalize", statusColors[order.status])}>
-                                                {order.status}
+                                            <span className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full capitalize", statusColors[order.status] || statusColors.default)}>
+                                                {typeof order.status === 'string' ? order.status : 'pending'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
@@ -256,6 +313,15 @@ export default function OrdersPage() {
                             </tbody>
                         </table>
                     </div>
+                </div>
+            )}
+
+            {/* No filtered orders found */}
+            {!loading && !error && orders.length > 0 && filteredOrders.length === 0 && (
+                <div className="bg-white rounded-2xl border border-border shadow-alibaba p-8 text-center">
+                    <Package size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <p className="text-foreground font-medium mb-2">No Orders Found</p>
+                    <p className="text-muted-foreground">No orders match your current filters.</p>
                 </div>
             )}
         </div>
@@ -278,7 +344,9 @@ function StatCard({ label, value, icon: Icon, color, trend, delay }) {
             <div className="flex items-center justify-between">
                 <div>
                     <p className="text-sm font-medium text-muted-foreground mb-1">{label}</p>
-                    <p className="text-3xl font-bold text-foreground">{value}</p>
+                    <p className="text-3xl font-bold text-foreground">
+                        {label === 'Total Revenue' ? `₵${value}` : value}
+                    </p>
                     {trend && <p className="text-xs font-semibold mt-2 opacity-70">{trend} from last period</p>}
                 </div>
                 <div className="p-4 rounded-xl bg-white/50 backdrop-blur-sm">
