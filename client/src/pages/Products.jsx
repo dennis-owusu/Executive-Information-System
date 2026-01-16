@@ -241,14 +241,14 @@ export default function ProductsPage() {
                     color="from-purple-500 to-pink-500"
                     delay={300}
                 />
-                <StatCard 
+               {/*  <StatCard 
                     icon={DollarSign} 
                     label="Total Value" 
                     value={`₵${stats.totalValue.toLocaleString()}`} 
                     change="+23%" 
                     color="from-orange-500 to-amber-500"
                     delay={350}
-                />
+                /> */}
             </div>
 
             {/* Control Panel */}
@@ -569,7 +569,7 @@ function ProductGridCard({ product, index, selected, onToggle, onUpdate, onDelet
             <div className="relative h-48 overflow-hidden rounded-t-2xl">
                 {product.productImage ? (
                     <img 
-                        src={product.productImage.startsWith('http') ? product.productImage : `http://localhost:4000${product.productImage}`}
+                        src={product.productImage.startsWith('http') ? product.productImage : `${window.location.origin}${product.productImage}`}
                         alt={product.productName}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         onError={(e) => {
@@ -694,7 +694,7 @@ function ProductListRow({ product, index, selected, onToggle, onUpdate, onDelete
                     <div className="relative w-14 h-14 rounded-xl border-2 border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex-shrink-0 group-hover:border-purple-500/50 transition-all">
                         {product.productImage ? (
                             <img 
-                                src={product.productImage} 
+                                src={product.productImage.startsWith('http') ? product.productImage : `${window.location.origin}${product.productImage}`}
                                 alt={product.productName}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 onError={(e) => {

@@ -47,6 +47,15 @@ export async function getDashboardStats(params = {}) {
   return data;
 }
 
+export async function getAnalytics(params = {}) {
+  // Default to weekly period if not specified
+  if (!params.period) {
+    params.period = 'weekly';
+  }
+  const response = await api.get('/route/analytics', { params });
+  return response.data;
+}
+
 export async function getDashboardChartData(params = {}) {
   // Default to monthly period if not specified
   if (!params.period) {
@@ -168,6 +177,16 @@ export async function verifyPayment(paymentData) {
 
 export async function getMyOrders() {
   const { data } = await api.get('/route/getMyOrders');
+  return data;
+}
+
+export async function updateOrder(orderId, orderData) {
+  const { data } = await api.put(`/route/updateOrder/${orderId}`, orderData);
+  return data;
+}
+
+export async function getOrders() {
+  const { data } = await api.get('/route/getOrders');
   return data;
 }
 

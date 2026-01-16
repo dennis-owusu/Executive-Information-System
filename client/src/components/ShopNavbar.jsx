@@ -36,11 +36,7 @@ export default function ShopNavbar() {
                         <NavLink to="/shop/products" active={isActive('/shop/products')}>
                             Products
                         </NavLink>
-                        {isLoggedIn && (
-                            <NavLink to="/shop/my-orders" active={isActive('/shop/my-orders')}>
-                                My Orders
-                            </NavLink>
-                        )}
+                        
                     </div>
 
                     {/* Search Bar */}
@@ -154,11 +150,7 @@ export default function ShopNavbar() {
                             <MobileNavLink to="/shop/products" onClick={() => setMenuOpen(false)}>
                                 Products
                             </MobileNavLink>
-                            {isLoggedIn && (
-                                <MobileNavLink to="/shop/my-orders" onClick={() => setMenuOpen(false)}>
-                                    My Orders
-                                </MobileNavLink>
-                            )}
+                            
                             <div className="pt-2 mt-2 border-t border-slate-200">
                                 {isLoggedIn ? (
                                     <MobileNavLink to={isExecutive ? "/" : "/shop/profile"} onClick={() => setMenuOpen(false)} highlight>

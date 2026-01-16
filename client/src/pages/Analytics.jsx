@@ -12,21 +12,10 @@ import {
     Download,
     FileText,
     CheckCircle2,
-    Package
+    Package,
+    Clock,
+    XCircle
 } from 'lucide-react';
-import {
-    AreaChart,
-    Area,
-    PieChart,
-    Pie,
-    Cell,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Legend
-} from 'recharts';
 import { cn } from '../lib/utils';
 import { Bot } from 'lucide-react';
 
@@ -446,7 +435,7 @@ ${(ordersData?.totalOrders || 0) === 0 ? '• Implement marketing campaigns to d
                     colorScheme="indigo"
                     delay={0}
                 />
-                <KPICard
+              {/*   <KPICard
                     label="Total Orders"
                     value={salesSummary?.total?.count || '0'}
                     change="+0%"
@@ -454,7 +443,7 @@ ${(ordersData?.totalOrders || 0) === 0 ? '• Implement marketing campaigns to d
                     icon={ShoppingCart}
                     colorScheme="blue"
                     delay={100}
-                />
+                /> */}
                 <KPICard
                     label="Operations Success"
                     value={`${(opsSummary?.paymentSuccessRate * 100)?.toFixed(1) || 0}%`}
@@ -478,88 +467,95 @@ ${(ordersData?.totalOrders || 0) === 0 ? '• Implement marketing campaigns to d
             {/* --- MAIN CHART GRID --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                {/* Revenue Chart */}
+                {/* Order Status Overview */}
                 <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900">Revenue Trend</h3>
-                            <p className="text-sm text-slate-500">Monthly financial performance</p>
+                            <h3 className="text-lg font-bold text-slate-900">Order Status Overview</h3>
+                            <p className="text-sm text-slate-500">Current order distribution and trends</p>
                         </div>
-                        {/* Small Chart Action */}
-                        <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                            <FileText size={20} />
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <div className="text-right">
+                                <p className="text-2xl font-bold text-slate-900">{ordersData?.totalOrders || 0}</p>
+                                <p className="text-xs text-slate-500">Total Orders</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={revenueData}>
-                                <defs>
-                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#4F46E5" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                                <XAxis dataKey="month" stroke="#94A3B8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#94A3B8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(value) => `₵${value/1000}k`} />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#1E293B',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        color: '#fff'
-                                    }}
-                                    itemStyle={{ color: '#fff' }}
-                                />
-                                <Legend iconType="circle" />
-                                <Area type="monotone" dataKey="revenue" stroke="#4F46E5" fill="url(#colorRevenue)" strokeWidth={3} name="Revenue" activeDot={{ r: 8 }} />
-                                <Area type="monotone" dataKey="orders" stroke="#0EA5E9" fill="url(#colorOrders)" strokeWidth={3} name="Orders" />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-blue-600">Pending</p>
+                                    <p className="text-2xl font-bold text-blue-900">{ordersData?.pendingOrders || 0}</p>
+                                </div>
+                                <div className="bg-blue-100 p-2 rounded-full">
+                                    <Clock className="w-5 h-5 text-blue-600" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-green-600">Completed</p>
+                                    <p className="text-2xl font-bold text-green-900">{ordersData?.completedOrders || 0}</p>
+                                </div>
+                                <div className="bg-green-100 p-2 rounded-full">
+                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-red-600">Cancelled</p>
+                                    <p className="text-2xl font-bold text-red-900">{ordersData?.cancelledOrders || 0}</p>
+                                </div>
+                                <div className="bg-red-100 p-2 rounded-full">
+                                    <XCircle className="w-5 h-5 text-red-600" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Pie Chart */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-                    <h3 className="text-lg font-bold text-slate-900 mb-6">Sales by Category</h3>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={categoryData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={90}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {categoryData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
-                                    ))}
-                                </Pie>
-                                <Tooltip 
-                                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="space-y-3 mt-4">
-                        {categoryData.map((cat, i) => (
-                            <div key={i} className="flex items-center justify-between group cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: cat.color }}></div>
-                                    <span className="text-slate-700 font-medium text-sm">{cat.name}</span>
+                {/* Top Performing Products */}
+              {/*   <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-900 mb-6">Top Performing Products</h3>
+                    
+                    {loadingTopProducts ? (
+                        <div className="flex items-center justify-center h-32">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        </div>
+                    ) : topProducts && topProducts.length > 0 ? (
+                        <div className="space-y-4">
+                            {topProducts.slice(0, 5).map((product, index) => (
+                                <div key={index} className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                                            <span className="text-indigo-600 font-bold text-sm">{index + 1}</span>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-slate-900 text-sm">{product.name}</p>
+                                            <p className="text-xs text-slate-500">{product.category}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-slate-900 text-sm">{product.units} units</p>
+                                        <p className="text-xs text-slate-500">₵{product.sales?.toLocaleString()}</p>
+                                    </div>
                                 </div>
-                                <span className="text-slate-900 font-bold text-sm">{cat.value}%</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                            <p className="text-slate-500 text-sm">No product performance data available</p>
+                        </div>
+                    )}
+                </div> */}
             </div>
 
             {/* --- AI INSIGHTS SECTION --- */}
@@ -683,7 +679,7 @@ ${(ordersData?.totalOrders || 0) === 0 ? '• Implement marketing campaigns to d
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-lg font-bold text-slate-900">₵${product.revenue.toLocaleString()}</p>
+                                    <p className="text-lg font-bold text-slate-900">₵{product.sales.toLocaleString()}</p>
                                     <div className="flex items-center justify-end gap-1 text-xs font-medium text-emerald-600">
                                         <TrendingUp size={14} />
                                         <span>High Demand</span>

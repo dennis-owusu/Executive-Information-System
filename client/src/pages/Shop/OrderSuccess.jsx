@@ -75,13 +75,7 @@ export default function OrderSuccessPage() {
                             <Home size={20} />
                             Go to Home Now
                         </Link>
-                        <Link
-                            to="/shop/my-orders"
-                            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-all"
-                        >
-                            View My Orders
-                            <ArrowRight size={18} />
-                        </Link>
+                        
                     </div>
                 </div>
             </div>

@@ -315,7 +315,7 @@ function ProductCard({ product, index, onAddToCart, onBuyNow }) {
                 <Link to={productLink} className="block w-full h-full">
                     {productData.productImage && !imageError ? (
                         <img
-                            src={productData.productImage.startsWith('http') ? productData.productImage : `http://localhost:4000${productData.productImage}`}
+                            src={productData.productImage.startsWith('http') ? productData.productImage : `${window.location.origin}${productData.productImage}`}
                             alt={productData.productName || productData.name}
                             onError={() => setImageError(true)}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"

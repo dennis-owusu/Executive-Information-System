@@ -106,7 +106,7 @@ function ProductItem({ product, index }) {
             <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform">
                 {product.productImage ? (
                     <img
-                        src={product.productImage.startsWith('http') ? product.productImage : `http://localhost:4000${product.productImage}`}
+                        src={product.productImage.startsWith('http') ? product.productImage : `${window.location.origin}${product.productImage}`}
                         alt={product.productName || product.name}
                         className="w-full h-full object-cover"
                     />

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import ShopNavbar from '../../components/ShopNavbar';
 import { Package, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Truck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getMyOrders } from '../../services/api';
+import { getMyOrders, updateOrder } from '../../services/api';
+import { getUserData } from '../../utils/auth';
 
 export default function MyOrdersPage() {
     const [orders, setOrders] = useState([]);
@@ -12,16 +13,50 @@ export default function MyOrdersPage() {
     useEffect(() => {
         const fetchOrders = async () => {
             try {
+                const userData = getUserData();
+                console.log('User data:', userData);
+                
+                if (!userData || !userData._id) {
+                    console.log('No user data found, cannot fetch orders');
+                    setOrders([]);
+                    setLoading(false);
+                    return;
+                }
+                
+                // Get the user ID from localStorage
+                const userId = userData._id;
+                console.log('Fetching orders for user ID:', userId);
+                
                 const data = await getMyOrders();
                 console.log('MyOrders data:', data);
-                if (data && data.length > 0) {
-                    console.log('First order structure:', JSON.stringify(data[0], null, 2));
-                    console.log('First order userInfo:', data[0].userInfo);
-                    console.log('First order userInfo type:', typeof data[0].userInfo);
-                    console.log('First order userInfo.name:', data[0].userInfo?.name);
-                    console.log('First order userInfo.name type:', typeof data[0].userInfo?.name);
+                console.log('MyOrders response type:', typeof data);
+                console.log('MyOrders response keys:', Object.keys(data));
+                
+                // Handle different response formats
+                let ordersData = [];
+                if (data && typeof data === 'object') {
+                    if (Array.isArray(data)) {
+                        ordersData = data;
+                    } else if (data.orders && Array.isArray(data.orders)) {
+                        ordersData = data.orders;
+                    } else if (data.data && Array.isArray(data.data)) {
+                        ordersData = data.data;
+                    }
                 }
-                setOrders(data);
+                
+                console.log('Processed orders data:', ordersData);
+                console.log('Number of orders found:', ordersData.length);
+                
+                if (ordersData.length > 0) {
+                    console.log('First order structure:', JSON.stringify(ordersData[0], null, 2));
+                    console.log('First order userInfo:', ordersData[0].userInfo);
+                    console.log('First order userInfo type:', typeof ordersData[0].userInfo);
+                    console.log('First order userInfo.name:', ordersData[0].userInfo?.name);
+                    console.log('First order userInfo.name type:', typeof ordersData[0].userInfo?.name);
+                    console.log('First order status:', ordersData[0].status);
+                    console.log('First order products count:', ordersData[0].products?.length);
+                }
+                setOrders(ordersData);
             } catch (error) {
                 console.error("Failed to fetch orders:", error);
             } finally {
@@ -39,11 +74,64 @@ export default function MyOrdersPage() {
         cancelled: { label: 'Cancelled', icon: XCircle, color: 'bg-red-100 text-red-700 border-red-200' },
     };
 
-    const filteredOrders = filter === 'all' ? orders : orders.filter(o => o.status === filter);
+    const filteredOrders = filter === 'all' ? orders : (Array.isArray(orders) ? orders.filter(o => o.status === filter) : []);
+
+    const handleStatusUpdate = async (orderId, newStatus) => {
+        try {
+            const updatedOrder = await updateOrder(orderId, { status: newStatus });
+            // Update the local state to reflect the change
+            setOrders(prevOrders => 
+                prevOrders.map(order => 
+                    order._id === orderId ? { ...order, status: newStatus } : order
+                )
+            );
+        } catch (error) {
+            console.error('Failed to update order status:', error);
+            throw error;
+        }
+    };
+
+    const loadAllOrders = async () => {
+        try {
+            setLoading(true);
+            const data = await getMyOrders();
+            console.log('All orders data:', data);
+            
+            // Handle different response formats
+            let ordersData = [];
+            if (data && typeof data === 'object') {
+                if (Array.isArray(data)) {
+                    ordersData = data;
+                } else if (data.orders && Array.isArray(data.orders)) {
+                    ordersData = data.orders;
+                } else if (data.data && Array.isArray(data.data)) {
+                    ordersData = data.data;
+                }
+            }
+            
+            setOrders(ordersData);
+            console.log('Loaded orders:', ordersData);
+        } catch (error) {
+            console.error('Failed to load all orders:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50">
             <ShopNavbar />
+            
+            {/* Debug Info */}
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <h3 className="text-sm font-semibold text-yellow-800 mb-2">Debug Info:</h3>
+                    <p className="text-sm text-yellow-700">Total Orders: {orders.length}</p>
+                    <p className="text-sm text-yellow-700">Loading: {loading ? 'Yes' : 'No'}</p>
+                    <p className="text-sm text-yellow-700">Filter: {filter}</p>
+                    <p className="text-sm text-yellow-700">Filtered Orders: {filteredOrders.length}</p>
+                </div>
+            </div>
 
             {/* Header */}
             <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 py-16 px-4">
@@ -97,7 +185,7 @@ export default function MyOrdersPage() {
                         </div>
                     ) : (
                         filteredOrders.map((order, index) => (
-                            <OrderCard key={order._id} order={order} statusConfig={statusConfig} index={index} />
+                            <OrderCard key={order._id} order={order} statusConfig={statusConfig} index={index} onStatusUpdate={handleStatusUpdate} />
                         ))
                     )}
                 </div>
@@ -106,10 +194,25 @@ export default function MyOrdersPage() {
     );
 }
 
-function OrderCard({ order, statusConfig, index }) {
+function OrderCard({ order, statusConfig, index, onStatusUpdate }) {
     const [expanded, setExpanded] = useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
     const status = statusConfig[order.status] || statusConfig.processing;
     const StatusIcon = status.icon;
+
+    const handleStatusChange = async (newStatus) => {
+        if (newStatus === order.status) return;
+        
+        setUpdatingStatus(true);
+        try {
+            await onStatusUpdate(order._id, newStatus);
+        } catch (error) {
+            console.error('Failed to update order status:', error);
+            alert('Failed to update order status. Please try again.');
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
 
     return (
         <div
@@ -131,10 +234,27 @@ function OrderCard({ order, statusConfig, index }) {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full border ${status.color}`}>
-                            <StatusIcon size={14} />
-                            {status.label}
-                        </span>
+                        {/* Status Update Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={order.status}
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                                disabled={updatingStatus}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full border appearance-none cursor-pointer ${status.color} ${updatingStatus ? 'opacity-50' : ''}`}
+                                style={{ backgroundColor: 'transparent' }}
+                            >
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                            {updatingStatus && (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            )}
+                        </div>
                         <div className="text-right">
                             <p className="text-2xl font-black text-purple-600">₵{Number(order.totalPrice || 0).toFixed(2)}</p>
                             <p className="text-xs text-slate-500">{order.products?.length || 0} items</p>
@@ -157,7 +277,7 @@ function OrderCard({ order, statusConfig, index }) {
                         {order.products.map((item, i) => (
                             <div key={i} className="flex gap-4 items-center bg-white p-3 rounded-xl">
                                 <div className="w-14 h-14 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
-                                    {item?.product?.productImage && <img src={item.product.productImage.startsWith('http') ? item.product.productImage : `http://localhost:4000${item.product.productImage}`} alt={item.product?.productName || item.product?.name} className="w-full h-full object-cover" />}
+                                    {item?.product?.productImage && <img src={item.product.productImage.startsWith('http') ? item.product.productImage : `${window.location.origin}${item.product.productImage}`} alt={item.product?.productName || item.product?.name} className="w-full h-full object-cover" />}
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-semibold text-slate-900">{item.product?.productName || item.product?.name}</p>

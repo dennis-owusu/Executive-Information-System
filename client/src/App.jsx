@@ -19,7 +19,6 @@ import ShopProducts from './pages/Shop/ShopProducts';
 import Cart from './pages/Shop/Cart';
 import Checkout from './pages/Shop/Checkout';
 import OrderSuccess from './pages/Shop/OrderSuccess';
-import MyOrders from './pages/Shop/MyOrders';
 import Profile from './pages/Shop/Profile';
 
 export default function App() {
@@ -35,7 +34,6 @@ export default function App() {
       <Route path="/shop/cart" element={<Cart />} />
       <Route path="/shop/checkout" element={<Checkout />} />
       <Route path="/shop/order-success" element={<OrderSuccess />} />
-      <Route path="/shop/my-orders" element={<MyOrders />} />
       <Route path="/shop/profile" element={<Profile />} />
 
       {/* Protected Routes wrapped in Main Layout */}

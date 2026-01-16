@@ -21,7 +21,7 @@ router.post('/upload', upload.array('images', 10), async (req, res) => {
   try {
     const images = req.files.map(file => ({
       fileName: file.filename,
-      filePath: `https://breakfast-factory-jumia.onrender.com/uploads/${file.filename}`, // Relative path for proper resolution
+      filePath: `/uploads/${file.filename}`, // Local path for proper resolution
     }));
  
 

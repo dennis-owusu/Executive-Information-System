@@ -157,7 +157,7 @@ function CartItem({ item, index, onUpdateQuantity, onRemove }) {
       <div className="w-28 h-28 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0">
         {item.productImage && !imageError ? (
           <img
-            src={item.productImage.startsWith('http') ? item.productImage : `http://localhost:4000${item.productImage}`}
+            src={item.productImage.startsWith('http') ? item.productImage : `${window.location.origin}${item.productImage}`}
             alt={item.productName || item.name}
             onError={() => setImageError(true)}
             className="w-full h-full object-cover"

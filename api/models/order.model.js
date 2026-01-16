@@ -16,6 +16,10 @@ const orderSchema = new mongoose.Schema(
     products: [
       {
         product: {
+          _id: {
+            type: mongoose.Schema.Types.ObjectId,
+            required: [true, "Product ID is required"],
+          },
           name: {
             type: String,
             required: [true, "Product name is required"],
@@ -29,6 +33,11 @@ const orderSchema = new mongoose.Schema(
           images: {
             type: [String],
             default: [],
+          },
+          category: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Categories',
+            required: false,
           },  
         },
         quantity: {

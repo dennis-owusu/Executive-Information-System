@@ -125,10 +125,40 @@ export const getAnalytics = async (req, res, next) => {
             $group: {
               _id: { name: '$products.product.name', price: '$products.product.price' },
               name: { $first: '$products.product.name' },
+              categoryId: { $first: '$products.product.category' },
               totalValue: { $sum: { $multiply: ['$products.quantity', '$products.product.price'] } },
             }
           },
-          {            $project: {              name: '$name',              value: '$totalValue',              units: { $sum: '$products.quantity' },              _id: 0,            },          },          { $sort: { units: -1 } },
+          // Lookup category details
+          {
+            $lookup: {
+              from: 'categories',
+              localField: 'categoryId',
+              foreignField: '_id',
+              as: 'categoryDetails'
+            }
+          },
+          // Add category name
+          {
+            $addFields: {
+              category: {
+                $ifNull: [
+                  { $arrayElemAt: ['$categoryDetails.categoryName', 0] },
+                  'Unknown Category'
+                ]
+              }
+            }
+          },
+          {
+            $project: {
+              name: '$name',
+              category: '$category',
+              value: '$totalValue',
+              units: { $sum: '$products.quantity' },
+              _id: 0,
+            },
+          },
+          { $sort: { units: -1 } },
           { $limit: 5 },
         ]);
       }
@@ -171,56 +201,39 @@ export const getAnalytics = async (req, res, next) => {
           { $unwind: '$products' },
           {
             $group: {
-              _id: { name: '$products.product.name', price: '$products.product.price' },
+              _id: '$products.product._id',
               name: { $first: '$products.product.name' },
               price: { $first: '$products.product.price' },
+              categoryId: { $first: '$products.product.category' },
               sales: { $sum: { $multiply: ['$products.quantity', '$products.product.price'] } },
               units: { $sum: '$products.quantity' },
             }
           },
-          {
-            $lookup: {
-              from: 'products',
-              let: { productName: '$name', productPrice: '$price' },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $and: [
-                        { $eq: ['$productName', '$$productName'] },
-                        { $eq: ['$productPrice', '$$productPrice'] }
-                      ]
-                    }
-                  }
-                }
-              ],
-              as: 'productDetails'
-            }
-          },
-          // Now lookup product details for additional info
-          {
-            $lookup: {
-              from: 'products',
-              localField: '_id',
-              foreignField: '_id',
-              as: 'productDetails',
-            },
-          },
-          { $unwind: { path: '$productDetails', preserveNullAndEmptyArrays: true } },
+          // Lookup category details
           {
             $lookup: {
               from: 'categories',
-              localField: 'productDetails.category',
+              localField: 'categoryId',
               foreignField: '_id',
               as: 'categoryDetails'
             }
           },
-          { $unwind: { path: '$categoryDetails', preserveNullAndEmptyArrays: true } },
+          // Add category name
+          {
+            $addFields: {
+              category: {
+                $ifNull: [
+                  { $arrayElemAt: ['$categoryDetails.categoryName', 0] },
+                  'Unknown Category'
+                ]
+              }
+            }
+          },
           // Final projection with all needed fields
           {
             $project: {
               name: '$name',
-              category: { $ifNull: [{ $arrayElemAt: ['$categoryDetails.categoryName', 0] }, 'Uncategorized'] },
+              category: '$category',
               sales: 1,
               units: 1,
               _id: 0,
@@ -237,6 +250,16 @@ export const getAnalytics = async (req, res, next) => {
       }
       
       console.log('Top products results:', topProducts);
+      
+      // Debug: Check first product's category details
+      if (topProducts.length > 0) {
+        console.log('First product category details:', {
+          name: topProducts[0].name,
+          category: topProducts[0].category,
+          hasCategoryDetails: topProducts[0].categoryDetails ? 'yes' : 'no',
+          hasProductDetails: topProducts[0].productDetails ? 'yes' : 'no'
+        });
+      }
     } catch (topProductsError) {
       console.error('Error aggregating top products data:', topProductsError);
       topProducts = [];

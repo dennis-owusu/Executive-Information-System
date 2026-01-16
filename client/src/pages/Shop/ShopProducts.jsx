@@ -257,7 +257,7 @@ function ProductCardGrid({ product, index, onAddToCart, onBuyNow }) {
             <div className="relative aspect-square bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden">
                 {product.productImage && !imageError ? (
                     <img
-                        src={product.productImage.startsWith('http') ? product.productImage : `http://localhost:4000${product.productImage}`}
+                        src={product.productImage.startsWith('http') ? product.productImage : `${window.location.origin}${product.productImage}`}
                         alt={product.productName || product.name}
                         onError={() => setImageError(true)}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"

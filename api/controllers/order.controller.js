@@ -40,11 +40,11 @@ export const createOrder = async (req, res) => {
 
         return {
           product: {
-            id: product._id,
+            _id: product._id,
             name: product.productName,
             price: product.productPrice,
             images: product.productImage ? [product.productImage] : [],
-            category: product.category,
+            category: product.category?._id || null,
             outlet: product.outlet || { name: 'Unknown Outlet' },
           },
           quantity: item.quantity,
@@ -475,10 +475,18 @@ export const getMyOrders = async (req, res) => {
     
     console.log('Fetching orders for user ID:', userId);
     
-    // For debugging: if userId is 'default-user-id', return empty orders
+    // For debugging: if userId is 'default-user-id', return all orders to show what's available
     if (userId === 'default-user-id') {
-      console.log('Using default user ID, returning empty orders for debugging');
-      return res.status(200).json({ orders: [], totalOrders: 0 });
+      console.log('Using default user ID, returning all orders for debugging');
+      const allOrders = await Order.find({})
+        .populate('user', 'name email phoneNumber')
+        .sort({ createdAt: -1 })
+        .skip(startIndex)
+        .limit(limit);
+      
+      const totalOrders = await Order.countDocuments({});
+      console.log(`Found ${allOrders.length} total orders for debugging`);
+      return res.status(200).json({ orders: allOrders, totalOrders });
     }
     
     let query = { user: userId };

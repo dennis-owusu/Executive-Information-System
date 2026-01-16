@@ -3,8 +3,15 @@ import { errorHandler } from './error.js';
 import Subscription from '../models/subscription.model.js';
 
 export const verifyToken = (req, res, next) => {
-  // Temporarily disable authentication for debugging
-  req.user = { id: req.params.userId || 'default-user-id', role: 'admin' };
+  // Temporarily use user data from localStorage for debugging
+  // In production, this should use proper JWT token validation
+  const userData = req.body.userData || req.query.userData;
+  if (userData && userData._id) {
+    req.user = { id: userData._id, role: userData.usersRole || 'user' };
+  } else {
+    // Fallback to default for backward compatibility
+    req.user = { id: req.params.userId || 'default-user-id', role: 'admin' };
+  }
   return next();
   
   // Original authentication code (commented out for debugging)
